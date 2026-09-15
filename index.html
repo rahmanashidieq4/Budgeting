@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Catatan Keuangan — Personal Budget Dashboard</title>
+<style>
+  :root{
+    --pink:#FF385C;
+    --pink-dark:#E31C5F;
+    --pink-tint:#FFE7EC;
+    --teal:#00A699;
+    --teal-tint:#E0F7F5;
+    --purple:#6C5CE7;
+    --purple-tint:#EDEBFC;
+    --amber:#FFB400;
+    --amber-tint:#FFF4DB;
+    --green:#1DB954;
+    --green-tint:#E3F8EA;
+    --red:#E11D48;
+    --red-tint:#FDE8EC;
+    --ink:#222222;
+    --ink-soft:#484848;
+    --muted:#717171;
+    --border:#EBEBEB;
+    --surface:#FFFFFF;
+    --bg:#FAFAFA;
+    --radius-lg:24px;
+    --radius-md:16px;
+    --radius-sm:12px;
+    --shadow-soft:0 2px 16px rgba(0,0,0,0.06);
+    --shadow-hover:0 12px 28px rgba(0,0,0,0.12);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{margin:0;}
+  button{font-family:inherit;}
+  ::selection{background:var(--pink-tint);}
+
+  /* ---------- Topbar ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:40;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 40px; background:rgba(255,255,255,0.9); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+    gap:20px;
+  }
+  .brand{display:flex; align-items:center; gap:9px; font-weight:700; font-size:19px; letter-spacing:-0.02em; white-space:nowrap;}
+  .brand-mark{width:30px;height:30px;border-radius:9px;background:var(--pink-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .brand-mark svg{width:16px;height:16px;}
+  .navlinks{display:flex; gap:4px; overflow-x:auto;}
+  .navlinks a{
+    padding:9px 16px; border-radius:999px; color:var(--muted); text-decoration:none;
+    font-size:14px; font-weight:600; white-space:nowrap; transition:background .15s ease,color .15s ease;
+  }
+  .navlinks a:hover{background:var(--pink-tint); color:var(--pink-dark);}
+  .navlinks a.active{background:var(--ink); color:#fff;}
+  .topbar-actions{display:flex; align-items:center; gap:12px; flex-shrink:0;}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px; border:none; cursor:pointer;
+    border-radius:999px; font-weight:700; font-size:14px; padding:11px 20px;
+    transition:transform .12s ease, box-shadow .12s ease, background .15s ease;
+  }
+  .btn:active{transform:scale(0.96);}
+  .btn-primary{background:var(--pink); color:#fff; box-shadow:0 4px 14px rgba(255,56,92,0.35);}
+  .btn-primary:hover{background:var(--pink-dark); box-shadow:0 6px 18px rgba(255,56,92,0.45);}
+  .btn-ghost{background:var(--surface); color:var(--ink); border:1px solid var(--border);}
+  .btn-ghost:hover{border-color:var(--ink);}
+  .avatar{
+    width:40px;height:40px;border-radius:50%; background:linear-gradient(135deg,#FFD1DC,#FFB4C6);
+    display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--pink-dark); font-size:15px; flex-shrink:0;
+  }
+
+  main{max-width:1200px; margin:0 auto; padding:0 40px 80px;}
+  section{padding-top:56px; scroll-margin-top:90px;}
+
+  /* ---------- Hero / Greeting ---------- */
+  .hero{position:relative; padding-top:48px; padding-bottom:8px; overflow:hidden;}
+  .hero-blob{position:absolute; top:-120px; right:-100px; width:420px; height:420px; border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, rgba(255,56,92,0.16), rgba(108,92,231,0.10) 60%, transparent 70%);
+    filter:blur(10px); z-index:0; pointer-events:none;}
+  .hero-inner{position:relative; z-index:1; opacity:0; transform:translateY(10px); animation:heroIn .6s ease forwards;}
+  @keyframes heroIn{ to{opacity:1; transform:translateY(0);} }
+  .greeting{font-size:32px; font-weight:800; letter-spacing:-0.02em;}
+  .greeting-sub{color:var(--muted); font-size:15px; margin-top:6px;}
+
+  .summary-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-top:32px; position:relative; z-index:1;}
+  @media (max-width:980px){ .summary-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:560px){ .summary-grid{grid-template-columns:1fr;} }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-soft); transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .card:hover{transform:translateY(-3px); box-shadow:var(--shadow-hover);}
+
+  .stat-card{padding:22px;}
+  .stat-icon{width:46px;height:46px;border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:16px;}
+  .stat-label{font-size:13px; color:var(--muted); font-weight:600; margin-bottom:6px;}
+  .stat-value{font-size:24px; font-weight:800; letter-spacing:-0.01em; margin-bottom:10px;}
+  .stat-change{display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:700; padding:4px 10px; border-radius:999px;}
+  .stat-change.up-good{background:var(--green-tint); color:#12813F;}
+  .stat-change.up-bad{background:var(--red-tint); color:var(--red);}
+  .stat-change.down-good{background:var(--green-tint); color:#12813F;}
+  .stat-change.down-bad{background:var(--red-tint); color:var(--red);}
+  .stat-change.flat{background:#F2F2F2; color:var(--muted);}
+
+  /* ---------- Section headers ---------- */
+  .section-head{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:24px; flex-wrap:wrap;}
+  .section-title{font-size:23px; font-weight:800; letter-spacing:-0.01em;}
+  .section-sub{color:var(--muted); font-size:14px; margin-top:4px;}
+
+  /* ---------- Bank Accounts ---------- */
+  .accounts-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:18px;}
+  @media (max-width:720px){ .accounts-grid{grid-template-columns:1fr;} }
+  .bank-card{padding:24px; position:relative; overflow:hidden;}
+  .bank-card-top{display:flex; align-items:center; gap:14px; margin-bottom:18px;}
+  .bank-logo{width:50px; height:50px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:23px; flex-shrink:0; color:#fff; font-weight:800;}
+  .bank-name{font-weight:800; font-size:16px;}
+  .bank-tag{display:inline-block; margin-top:4px; font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:999px;}
+  .bank-tag.overall{background:var(--teal-tint); color:#0A7A70;}
+  .bank-tag.savings{background:var(--purple-tint); color:#4A3FBF;}
+  .bank-balance-label{font-size:12.5px; color:var(--muted); font-weight:600; margin-bottom:4px;}
+  .bank-balance{font-size:28px; font-weight:800; letter-spacing:-0.01em; margin-bottom:14px;}
+  .bank-edit-btn{border:1px solid var(--border); background:#fff; border-radius:999px; padding:8px 14px; font-size:12.5px; font-weight:700; cursor:pointer; color:var(--ink);}
+  .bank-edit-btn:hover{border-color:var(--ink);}
+  .bank-alloc-note{font-size:12px; color:var(--muted); margin-top:12px; padding-top:12px; border-top:1px solid var(--border);}
+  .bank-alloc-note b{color:var(--ink);}
+
+  /* ---------- Budget overview ---------- */
+  .budget-card{padding:36px; display:grid; grid-template-columns:200px 1fr; gap:40px; align-items:center;}
+  @media (max-width:720px){ .budget-card{grid-template-columns:1fr; justify-items:center; text-align:center;} }
+  .ring-wrap{position:relative; width:180px; height:180px;}
+  .ring-wrap svg{transform:rotate(-90deg);}
+  .ring-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .ring-pct{font-size:30px; font-weight:800;}
+  .ring-caption{font-size:12px; color:var(--muted); font-weight:600;}
+  .budget-stats{display:flex; gap:40px; flex-wrap:wrap; margin-bottom:18px;}
+  .budget-stat-label{font-size:13px; color:var(--muted); font-weight:600; margin-bottom:4px;}
+  .budget-stat-value{font-size:21px; font-weight:800;}
+  .status-pill{display:inline-flex; align-items:center; gap:8px; padding:9px 16px; border-radius:999px; font-weight:700; font-size:13.5px;}
+  .status-pill.good{background:var(--green-tint); color:#12813F;}
+  .status-pill.warn{background:var(--amber-tint); color:#946200;}
+  .status-pill.danger{background:var(--red-tint); color:var(--red);}
+  .status-dot{width:9px;height:9px;border-radius:50%; background:currentColor; flex-shrink:0;}
+
+  /* ---------- Categories ---------- */
+  .cat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  @media (max-width:900px){ .cat-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:560px){ .cat-grid{grid-template-columns:1fr;} }
+  .cat-card{padding:20px; cursor:pointer; position:relative;}
+  .cat-card.active-filter{outline:2px solid var(--ink);}
+  .cat-top{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+  .cat-badge{width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;}
+  .cat-name{font-weight:700; font-size:15px;}
+  .cat-amounts{font-size:12.5px; color:var(--muted); margin-top:2px;}
+  .cat-bar-track{height:8px; border-radius:999px; background:#F0F0F0; overflow:hidden;}
+  .cat-bar-fill{height:100%; border-radius:999px; transition:width .5s ease;}
+  .cat-pct{display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-top:8px; font-weight:600;}
+  .cat-over{color:var(--red) !important;}
+
+  /* ---------- Trends ---------- */
+  .trends-grid{display:grid; grid-template-columns:1.5fr 1fr; gap:20px;}
+  @media (max-width:900px){ .trends-grid{grid-template-columns:1fr;} }
+  .chart-card, .rank-card{padding:26px;}
+  .chart-legend{display:flex; gap:18px; margin-bottom:10px;}
+  .legend-item{display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); font-weight:600;}
+  .legend-dot{width:9px; height:9px; border-radius:50%;}
+  .tooltip-box{position:absolute; background:var(--ink); color:#fff; padding:8px 12px; border-radius:10px; font-size:12px; pointer-events:none; display:none; white-space:nowrap; z-index:5;}
+  .rank-row{display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border);}
+  .rank-row:last-child{border-bottom:none;}
+  .rank-num{width:22px; height:22px; border-radius:50%; background:#F2F2F2; color:var(--muted); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .rank-info{flex:1; min-width:0;}
+  .rank-name{font-size:13.5px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .rank-bar-track{height:6px; border-radius:999px; background:#F0F0F0; margin-top:6px; overflow:hidden;}
+  .rank-bar-fill{height:100%; border-radius:999px;}
+  .rank-amount{font-size:13px; font-weight:700; flex-shrink:0;}
+
+  /* ---------- Goals ---------- */
+  .goals-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+  @media (max-width:900px){ .goals-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:600px){ .goals-grid{grid-template-columns:1fr;} }
+  .goal-card{padding:22px; display:flex; gap:16px; align-items:center;}
+  .goal-ring{position:relative; width:80px; height:80px; flex-shrink:0;}
+  .goal-ring svg{transform:rotate(-90deg);}
+  .goal-ring-center{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22px;}
+  .goal-body{flex:1; min-width:0;}
+  .goal-name{font-weight:700; font-size:14.5px; margin-bottom:4px;}
+  .goal-amounts{font-size:12.5px; color:var(--muted); margin-bottom:10px;}
+  .goal-add-btn{border:1px solid var(--border); background:#fff; border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; color:var(--ink);}
+  .goal-add-btn:hover{border-color:var(--ink);}
+  .goal-edit-btn{background:none; border:none; cursor:pointer; font-size:14px; padding:2px 4px; opacity:0.55; flex-shrink:0;}
+  .goal-edit-btn:hover{opacity:1;}
+  .add-goal-card{display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; border:2px dashed var(--border); background:transparent; box-shadow:none; cursor:pointer; padding:22px; color:var(--muted); font-weight:700; font-size:13.5px;}
+  .add-goal-card:hover{border-color:var(--pink); color:var(--pink-dark);}
+
+  /* ---------- Insights ---------- */
+  .insights-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:16px;}
+  @media (max-width:720px){ .insights-grid{grid-template-columns:1fr;} }
+  .insight-card{padding:20px; display:flex; gap:14px; align-items:flex-start;}
+  .insight-icon{width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;}
+  .insight-text{font-size:14px; color:var(--ink-soft); line-height:1.5;}
+  .insight-text b{color:var(--ink);}
+
+  /* ---------- Transactions ---------- */
+  .tx-controls{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;}
+  .search-box{flex:1; min-width:200px; display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--border); border-radius:999px; padding:10px 16px;}
+  .search-box input{border:none; outline:none; font-size:14px; width:100%; background:transparent; font-family:inherit;}
+  .filter-chip{border:1px solid var(--border); background:#fff; border-radius:999px; padding:9px 15px; font-size:13px; font-weight:600; cursor:pointer; color:var(--muted); white-space:nowrap;}
+  .filter-chip.active{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .filter-chip.clear{color:var(--pink-dark); border-color:var(--pink-tint); background:var(--pink-tint);}
+  .tx-card{padding:8px 22px;}
+  .tx-year-group{border-bottom:1px solid var(--border);}
+  .tx-year-group:last-child{border-bottom:none;}
+  .tx-year-header{
+    width:100%; display:flex; align-items:center; gap:10px; background:var(--bg); border:none;
+    padding:16px 4px; cursor:pointer; text-align:left; font-family:inherit; border-radius:10px;
+  }
+  .tx-year-chevron{display:inline-block; font-size:13px; color:var(--ink); transition:transform .18s ease; flex-shrink:0;}
+  .tx-year-chevron.open{transform:rotate(90deg);}
+  .tx-year-label{font-weight:800; font-size:17px; flex-shrink:0;}
+  .tx-year-count{font-size:12.5px; color:var(--muted); flex:1;}
+  .tx-year-body{overflow:hidden; max-height:20000px; transition:max-height .25s ease; padding-left:6px;}
+  .tx-year-body.collapsed{max-height:0;}
+  .tx-month-group{border-bottom:1px solid var(--border);}
+  .tx-month-group:last-child{border-bottom:none;}
+  .tx-month-header{
+    width:100%; display:flex; align-items:center; gap:10px; background:none; border:none;
+    padding:16px 4px; cursor:pointer; text-align:left; font-family:inherit;
+  }
+  .tx-month-chevron{display:inline-block; font-size:12px; color:var(--muted); transition:transform .18s ease; flex-shrink:0;}
+  .tx-month-chevron.open{transform:rotate(90deg);}
+  .tx-month-label{font-weight:800; font-size:15px; flex-shrink:0;}
+  .tx-month-count{font-size:12.5px; color:var(--muted); flex:1;}
+  .tx-month-summary{display:flex; gap:10px; font-size:12.5px; font-weight:700; flex-shrink:0;}
+  .tx-month-inc{color:var(--teal);}
+  .tx-month-exp{color:var(--pink);}
+  .tx-month-body{overflow:hidden; max-height:6000px; transition:max-height .25s ease;}
+  .tx-month-body.collapsed{max-height:0;}
+  .tx-row{display:flex; align-items:center; gap:14px; padding:16px 0; border-bottom:1px solid var(--border);}
+  .tx-row:last-child{border-bottom:none;}
+  .tx-badge{width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0;}
+  .tx-info{flex:1; min-width:0;}
+  .tx-cat{font-weight:700; font-size:14px;}
+  .tx-note{font-size:12.5px; color:var(--muted);}
+  .tx-date{font-size:11.5px; color:#9B9B9B; margin-top:2px;}
+  .tx-amount{font-weight:800; font-size:14.5px; white-space:nowrap;}
+  .tx-del{background:none; border:none; cursor:pointer; color:#C7C7C7; font-size:18px; padding:6px; flex-shrink:0;}
+  .tx-del:hover{color:var(--red);}
+  .tx-edit{background:none; border:none; cursor:pointer; font-size:14px; padding:6px; flex-shrink:0; opacity:0.55;}
+  .tx-edit:hover{opacity:1;}
+  .empty-state{text-align:center; padding:50px 20px; color:var(--muted);}
+  .empty-state .emoji{font-size:40px; margin-bottom:10px;}
+
+  footer{text-align:center; padding:40px 20px; color:var(--muted); font-size:12.5px;}
+
+  /* ---------- Modal ---------- */
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:100; display:none; align-items:center; justify-content:center; padding:20px;}
+  .overlay.open{display:flex;}
+  .modal{background:#fff; width:100%; max-width:460px; border-radius:var(--radius-lg); padding:28px; max-height:88vh; overflow-y:auto;}
+  .modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:22px;}
+  .modal-title{font-size:19px; font-weight:800;}
+  .modal-close{background:#F2F2F2; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:16px; color:var(--ink);}
+  .modal-close:hover{background:#E5E5E5;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:13px; font-weight:700; color:var(--ink-soft); margin-bottom:7px;}
+  .field input, .field select{
+    width:100%; border:1px solid var(--border); border-radius:12px; padding:11px 14px;
+    font-size:14.5px; font-family:inherit; background:#FAFAFA; color:var(--ink);
+  }
+  .field input:focus, .field select:focus{outline:none; border-color:var(--ink); background:#fff;}
+  .type-toggle{display:flex; gap:8px;}
+  .type-toggle button{
+    flex:1; padding:11px; border-radius:12px; border:1px solid var(--border); background:#fff; cursor:pointer;
+    font-weight:700; font-size:14px; color:var(--muted); transition:all .15s ease;
+  }
+  .type-toggle button.active.expense{background:var(--pink); border-color:var(--pink); color:#fff;}
+  .type-toggle button.active.income{background:var(--teal); border-color:var(--teal); color:#fff;}
+  .cat-picker{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+  .cat-pick-btn{
+    display:flex; flex-direction:column; align-items:center; gap:5px; padding:10px 4px; border-radius:12px;
+    border:1.5px solid var(--border); background:#fff; cursor:pointer; font-size:10.5px; font-weight:600; color:var(--muted);
+  }
+  .cat-pick-btn span.em{font-size:19px;}
+  .cat-pick-btn.active{border-color:var(--ink); background:#FAFAFA; color:var(--ink);}
+  .modal-submit{width:100%; background:var(--ink); color:#fff; border:none; padding:14px; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; margin-top:6px;}
+  .modal-submit:hover{background:var(--pink);}
+  .budget-edit-row{display:flex; align-items:center; gap:12px; margin-bottom:12px;}
+  .budget-edit-row .cat-badge{width:36px;height:36px; font-size:16px; border-radius:10px;}
+  .budget-edit-row label{flex:1; font-size:13.5px; font-weight:600;}
+  .budget-edit-row input{width:130px;}
+  .budget-total-row{display:flex; justify-content:space-between; padding-top:14px; margin-top:6px; border-top:1px solid var(--border); font-weight:800; font-size:15px;}
+
+  .toast-wrap{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:200; display:flex; flex-direction:column; gap:8px; align-items:center;}
+  .toast{background:var(--ink); color:#fff; padding:12px 20px; border-radius:999px; font-size:13.5px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,0.25); opacity:0; transform:translateY(10px); animation:toastIn .25s ease forwards, toastOut .25s ease 2.3s forwards;}
+  @keyframes toastIn{ to{opacity:1; transform:translateY(0);} }
+  @keyframes toastOut{ to{opacity:0; transform:translateY(-6px);} }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2"/><path d="M3 7v10a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2Z"/><circle cx="16.5" cy="13" r="1.4" fill="var(--pink)" stroke="none"/></svg></span>Catatan Keuangan<span style="color:var(--pink)">.</span></div>
+  <nav class="navlinks" id="navlinks">
+    <a href="#overview" class="active">Overview</a>
+    <a href="#accounts">Rekening</a>
+    <a href="#budget">Budget</a>
+    <a href="#categories">Kategori</a>
+    <a href="#trends">Tren</a>
+    <a href="#tracking">Harian/Mingguan</a>
+    <a href="#goals">Target</a>
+    <a href="#transactions">Transaksi</a>
+  </nav>
+  <div class="topbar-actions">
+    <button class="btn btn-primary" id="openAddTx">＋ Tambah</button>
+    <div class="avatar">R</div>
+  </div>
+</div>
+
+<main>
+
+  <section id="overview" class="hero">
+    <div class="hero-blob"></div>
+    <div class="hero-inner">
+      <div class="greeting" id="greetingText">Halo 👋</div>
+      <div class="greeting-sub" id="greetingDate"></div>
+      <div class="summary-grid" id="summaryGrid"></div>
+    </div>
+  </section>
+
+  <section id="accounts">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Saldo Rekening</div>
+        <div class="section-sub">Bank Mandiri untuk keperluan sehari-hari, BCA khusus tabungan.</div>
+      </div>
+    </div>
+    <div class="accounts-grid" id="accountsGrid"></div>
+  </section>
+
+  <section id="budget">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Budget Bulan Ini</div>
+        <div class="section-sub">Pantau seberapa jauh pengeluaranmu dari batas yang ditentukan.</div>
+      </div>
+      <button class="btn btn-ghost" id="openBudgetModal">⚙️ Atur Budget</button>
+    </div>
+    <div class="card budget-card" id="budgetCard"></div>
+  </section>
+
+  <section id="categories">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Kategori Pengeluaran</div>
+        <div class="section-sub">Klik kategori untuk melihat transaksinya.</div>
+      </div>
+    </div>
+    <div class="cat-grid" id="catGrid"></div>
+  </section>
+
+  <section id="trends">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Pola & Perbandingan Pengeluaran</div>
+        <div class="section-sub">6 bulan terakhir, pemasukan vs pengeluaran.</div>
+      </div>
+    </div>
+    <div class="trends-grid">
+      <div class="card chart-card" style="position:relative;">
+        <div class="chart-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:var(--teal)"></span>Pemasukan</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--pink)"></span>Pengeluaran</div>
+        </div>
+        <svg id="trendSvg" width="100%" height="240"></svg>
+        <div class="tooltip-box" id="trendTooltip"></div>
+      </div>
+      <div class="card rank-card">
+        <div style="font-weight:800; font-size:15px; margin-bottom:14px;">🏆 Kategori Terbesar</div>
+        <div id="rankList"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tracking">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Pelacakan Harian & Mingguan</div>
+        <div class="section-sub">Rincian pengeluaran bulan berjalan, per hari dan per minggu.</div>
+      </div>
+    </div>
+    <div class="summary-grid" id="dailyStatsGrid" style="margin-bottom:18px;"></div>
+    <div class="trends-grid">
+      <div class="card chart-card" style="position:relative;">
+        <div style="font-weight:800; font-size:15px; margin-bottom:14px;">📅 Pengeluaran per Hari</div>
+        <svg id="dailySvg" width="100%" height="220"></svg>
+        <div class="tooltip-box" id="dailyTooltip"></div>
+      </div>
+      <div class="card rank-card">
+        <div style="font-weight:800; font-size:15px; margin-bottom:14px;">🗓️ Pengeluaran per Minggu</div>
+        <div id="weeklyList"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="goals">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Target Keuangan</div>
+        <div class="section-sub">Progres menuju tujuan tabunganmu.</div>
+      </div>
+    </div>
+    <div class="goals-grid" id="goalsGrid"></div>
+  </section>
+
+  <section id="insights-section">
+    <div class="section-head">
+      <div>
+        <div class="section-title">✨ Insight Otomatis</div>
+        <div class="section-sub">Ringkasan kebiasaan keuanganmu bulan ini.</div>
+      </div>
+    </div>
+    <div class="insights-grid" id="insightsGrid"></div>
+  </section>
+
+  <section id="transactions">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Transaksi</div>
+        <div class="section-sub">Semua catatan pemasukan dan pengeluaranmu.</div>
+      </div>
+    </div>
+    <div class="tx-controls">
+      <div class="search-box">🔍<input type="text" id="txSearch" placeholder="Cari transaksi..." /></div>
+      <button class="filter-chip active" data-type="all">Semua</button>
+      <button class="filter-chip" data-type="income">Pemasukan</button>
+      <button class="filter-chip" data-type="expense">Pengeluaran</button>
+      <button class="filter-chip clear" id="clearCatFilter" style="display:none;">✕ <span id="clearCatFilterLabel"></span></button>
+    </div>
+    <div class="card tx-card">
+      <div id="txList"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>Catatan Keuangan · dibuat untuk Rahman · Data disimpan secara lokal di peramban ini.</footer>
+
+<!-- Add Transaction Modal -->
+<div class="overlay" id="txOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="txModalTitle">Tambah Transaksi</div>
+      <button class="modal-close" data-close="txOverlay">✕</button>
+    </div>
+    <form id="txForm">
+      <div class="field">
+        <div class="type-toggle">
+          <button type="button" class="active expense" data-type="expense">💸 Pengeluaran</button>
+          <button type="button" class="income" data-type="income">💰 Pemasukan</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Jumlah (Rp)</label>
+        <input type="text" inputmode="numeric" id="txAmount" placeholder="0" required />
+      </div>
+      <div class="field">
+        <label>Kategori</label>
+        <div class="cat-picker" id="txCatPicker"></div>
+      </div>
+      <div class="field">
+        <label>Tanggal</label>
+        <input type="date" id="txDate" required />
+      </div>
+      <div class="field">
+        <label>Catatan (opsional)</label>
+        <input type="text" id="txNote" placeholder="cth. Makan siang bersama teman" />
+      </div>
+      <button class="modal-submit" type="submit" id="txSubmitBtn">Simpan Transaksi</button>
+    </form>
+  </div>
+</div>
+
+<!-- Budget Modal -->
+<div class="overlay" id="budgetOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Atur Budget Bulanan</div>
+      <button class="modal-close" data-close="budgetOverlay">✕</button>
+    </div>
+    <div id="budgetEditList"></div>
+    <div class="budget-total-row"><span>Total Budget</span><span id="budgetEditTotal">Rp0</span></div>
+    <button class="modal-submit" id="saveBudgetBtn">Simpan Budget</button>
+  </div>
+</div>
+
+<!-- Goal Modal -->
+<div class="overlay" id="goalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="goalModalTitle">Tambah Target Baru</div>
+      <button class="modal-close" data-close="goalOverlay">✕</button>
+    </div>
+    <form id="goalForm">
+      <div class="field">
+        <label>Emoji</label>
+        <div class="cat-picker" id="goalEmojiPicker"></div>
+      </div>
+      <div class="field">
+        <label>Nama Target</label>
+        <input type="text" id="goalName" placeholder="cth. Dana Darurat" required />
+      </div>
+      <div class="field">
+        <label>Target Jumlah (Rp)</label>
+        <input type="text" inputmode="numeric" id="goalTarget" placeholder="0" required />
+      </div>
+      <div class="field">
+        <label>Sudah Terkumpul (Rp)</label>
+        <input type="text" inputmode="numeric" id="goalSaved" placeholder="0" />
+      </div>
+      <button class="modal-submit" type="submit" id="goalSubmitBtn">Simpan Target</button>
+      <button type="button" id="goalDeleteBtn" style="display:none; width:100%; background:none; border:none; color:var(--red); font-size:13px; font-weight:700; padding:12px; cursor:pointer;">🗑️ Hapus Target Ini</button>
+    </form>
+  </div>
+</div>
+
+<!-- Add to goal modal -->
+<div class="overlay" id="addSavingOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Tambah Tabungan</div>
+      <button class="modal-close" data-close="addSavingOverlay">✕</button>
+    </div>
+    <form id="addSavingForm">
+      <div class="field">
+        <label>Jumlah yang ingin ditambahkan (Rp)</label>
+        <input type="text" inputmode="numeric" id="addSavingAmount" placeholder="0" required />
+      </div>
+      <button class="modal-submit" type="submit">Tambahkan</button>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Bank Balance modal -->
+<div class="overlay" id="editBankOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="editBankTitle">Edit Saldo</div>
+      <button class="modal-close" data-close="editBankOverlay">✕</button>
+    </div>
+    <form id="editBankForm">
+      <div class="field">
+        <label>Saldo saat ini (Rp)</label>
+        <input type="text" inputmode="numeric" id="editBankAmount" placeholder="0" required />
+      </div>
+      <button class="modal-submit" type="submit">Simpan Saldo</button>
+    </form>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= DATA DEFINITIONS ================= */
+var EXPENSE_CATS = [
+  {id:'food', name:'Makanan & Minuman', emoji:'🍔', color:'#FF9F43'},
+  {id:'coffee', name:'Kopi', emoji:'☕', color:'#6F4E37'},
+  {id:'admin_fee', name:'Biaya Admin', emoji:'🏧', color:'#6C757D'},
+  {id:'fashion', name:'Fashion', emoji:'👔', color:'#E85D75'},
+  {id:'skincare', name:'Skincare', emoji:'🧴', color:'#FFC2D1'},
+  {id:'household', name:'Essentials Rumah Tangga', emoji:'🧺', color:'#118AB2'},
+  {id:'transfer', name:'Transfer', emoji:'🔁', color:'#495057'},
+  {id:'savings_out', name:'Tabungan', emoji:'🏦', color:'#2A9D8F'},
+  {id:'shopping', name:'Belanja', emoji:'🛒', color:'#FF385C'},
+  {id:'transport', name:'Transportasi', emoji:'🚗', color:'#3A86FF'},
+  {id:'home', name:'Tempat Tinggal', emoji:'🏠', color:'#8338EC'},
+  {id:'bills', name:'Tagihan', emoji:'💡', color:'#FFB400'},
+  {id:'education', name:'Pendidikan', emoji:'🎓', color:'#06A77D'},
+  {id:'entertainment', name:'Hiburan', emoji:'🎮', color:'#FB5607'},
+  {id:'health', name:'Kesehatan & Fitness', emoji:'🏋️', color:'#E63946'},
+  {id:'travel', name:'Traveling', emoji:'✈️', color:'#00A699'},
+  {id:'gift', name:'Hadiah', emoji:'🎁', color:'#F72585'},
+  {id:'subscription', name:'Subscription', emoji:'📱', color:'#7209B7'},
+  {id:'other', name:'Lainnya', emoji:'📦', color:'#717171'}
+];
+var INCOME_CATS = [
+  {id:'salary', name:'Gaji', emoji:'💰', color:'#1DB954'},
+  {id:'bonus', name:'Bonus', emoji:'🎉', color:'#FFB400'},
+  {id:'investment', name:'Investasi', emoji:'📈', color:'#3A86FF'},
+  {id:'gift_income', name:'Hadiah', emoji:'🎁', color:'#F72585'},
+  {id:'other_income', name:'Lainnya', emoji:'📦', color:'#717171'}
+];
+var ALL_CATS_MAP = {};
+EXPENSE_CATS.concat(INCOME_CATS).forEach(function(c){ ALL_CATS_MAP[c.id] = c; });
+
+var GOAL_EMOJIS = ['🛟','🏝️','🚗','🏠','💍','🎓','💻','🩺','🎉','📦'];
+
+var BANKS = [
+  {id:'mandiri', name:'Bank Mandiri', emoji:'🏦', color:'#003D79', tagCls:'overall', tagText:'Overall budgeting', desc:'Dipakai untuk semua pemasukan & pengeluaran sehari-hari.'},
+  {id:'bca', name:'Bank BCA', emoji:'💰', color:'#0060AF', tagCls:'savings', tagText:'Khusus tabungan', desc:'Didedikasikan khusus untuk menabung, terpisah dari budget harian.'}
+];
+
+var LS_TX = 'kelola_transactions';
+var LS_BUDGET = 'kelola_category_budgets';
+var LS_GOALS = 'kelola_goals';
+var LS_BANKS = 'kelola_bank_balances';
+
+/* ================= HELPERS ================= */
+function pad(n){ return String(n).padStart(2,'0'); }
+function daysInMonth(d){ return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); }
+function toISO(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function monthKeyOf(iso){ return iso.slice(0,7); }
+function monthKeyOffset(offset){
+  var d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-offset);
+  return d.getFullYear()+'-'+pad(d.getMonth()+1);
+}
+function fmtIDR(n){
+  n = Math.round(n||0);
+  return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n);
+}
+function fmtCompact(n){
+  var abs = Math.abs(n), sign = n<0?'-':'';
+  if(abs>=1000000000) return sign+(abs/1000000000).toFixed(1).replace(/\.0$/,'')+'M';
+  if(abs>=1000000) return sign+(abs/1000000).toFixed(1).replace(/\.0$/,'')+'jt';
+  if(abs>=1000) return sign+Math.round(abs/1000)+'rb';
+  return sign+abs;
+}
+function pctChange(curr, prev){
+  if(prev === 0) return curr === 0 ? 0 : 100;
+  return ((curr-prev)/prev)*100;
+}
+function escapeHtml(s){ var d=document.createElement('div'); d.innerText = s==null?'':s; return d.innerHTML; }
+function hexAlpha(hex, alpha){
+  var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return 'rgba('+r+','+g+','+b+','+alpha+')';
+}
+var MONTH_ID_LONG = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+var MONTH_ID_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+var DAY_ID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+
+/* ================= SEED DATA ================= */
+function mkTx(date, type, category, amount, note){
+  return {id: date.getTime()+'-'+category+'-'+Math.round(amount), type:type, category:category, amount:amount, date: toISO(date), note: note};
+}
+var CATEGORY_BASE_AMOUNT = {
+  food:1400000, shopping:900000, transport:550000, home:1500000, bills:750000,
+  education:250000, entertainment:350000, health:280000, travel:200000,
+  gift:150000, subscription:140000, other:200000
+};
+var SAMPLE_NOTES = {
+  food:['Makan siang','Kopi pagi','Makan malam bersama','Belanja bahan masak'],
+  shopping:['Belanja bulanan','Beli baju','Skincare','Kebutuhan rumah'],
+  transport:['Ojek online','Isi bensin','Parkir','Tol'],
+  home:['Sewa kos','Iuran lingkungan','Perbaikan rumah'],
+  bills:['Listrik & air','Internet','Pulsa','PDAM'],
+  education:['Buku','Kursus online','Alat tulis'],
+  entertainment:['Nonton bioskop','Streaming','Konser kecil'],
+  health:['Gym membership','Obat','Vitamin'],
+  travel:['Tiket kereta','Hotel','Oleh-oleh'],
+  gift:['Kado ulang tahun','Angpao'],
+  subscription:['Netflix','Spotify','Cloud storage'],
+  other:['Lain-lain','Sumbangan','Tidak terduga']
+};
+var REAL_TRANSACTIONS = [{"id": "stmt-164-2026-08-01", "date": "2026-08-01", "type": "expense", "category": "bills", "amount": 60000, "note": "XL"}, {"id": "stmt-165-2026-08-01", "date": "2026-08-01", "type": "expense", "category": "food", "amount": 25000, "note": "DAPUR SYURGA"}, {"id": "stmt-166-2026-08-01", "date": "2026-08-01", "type": "expense", "category": "shopping", "amount": 71000, "note": "OLS Hagia Florist"}, {"id": "stmt-167-2026-08-01", "date": "2026-08-01", "type": "expense", "category": "food", "amount": 25000, "note": "COSAN JAKAL YK"}, {"id": "stmt-168-2026-08-01", "date": "2026-08-01", "type": "expense", "category": "food", "amount": 57000, "note": "IDM QRIS LIVIN"}, {"id": "stmt-169-2026-08-02", "date": "2026-08-02", "type": "expense", "category": "food", "amount": 10000, "note": "WARMINDO SAMI ASIH 01, DE"}, {"id": "stmt-170-2026-08-02", "date": "2026-08-02", "type": "expense", "category": "shopping", "amount": 15000, "note": "VAP-SHOPEE"}, {"id": "stmt-171-2026-08-02", "date": "2026-08-02", "type": "expense", "category": "transport", "amount": 40000, "note": "SPBU 44.55209,SLM KM5.6"}, {"id": "stmt-172-2026-08-02", "date": "2026-08-02", "type": "expense", "category": "food", "amount": 10000, "note": "rohman h2, Makanan"}, {"id": "stmt-173-2026-08-02", "date": "2026-08-02", "type": "expense", "category": "shopping", "amount": 10000, "note": "OLS Beverly Florist"}, {"id": "stmt-174-2026-08-02", "date": "2026-08-02", "type": "expense", "category": "food", "amount": 5000, "note": "TAHU BULAN QIYARA"}, {"id": "stmt-175-2026-08-02", "date": "2026-08-02", "type": "expense", "category": "shopping", "amount": 15000, "note": "VAP-SHOPEE"}, {"id": "stmt-176-2026-08-03", "date": "2026-08-03", "type": "expense", "category": "admin_fee", "amount": 6000, "note": "Biaya administrasi kartu debit"}, {"id": "stmt-177-2026-08-03", "date": "2026-08-03", "type": "expense", "category": "food", "amount": 13000, "note": "WARMINDO SAMI ASIH 01, DE"}, {"id": "stmt-178-2026-08-03", "date": "2026-08-03", "type": "expense", "category": "food", "amount": 25000, "note": "COSAN JAKAL YK"}, {"id": "stmt-179-2026-08-03", "date": "2026-08-03", "type": "expense", "category": "education", "amount": 7500, "note": "GRAMEDIA 005 SUDIRMAN"}, {"id": "stmt-180-2026-08-03", "date": "2026-08-03", "type": "expense", "category": "shopping", "amount": 27700, "note": "VAP-SHOPEE"}, {"id": "stmt-181-2026-08-03", "date": "2026-08-03", "type": "expense", "category": "shopping", "amount": 14700, "note": "VAP-SHOPEE"}, {"id": "stmt-182-2026-08-04", "date": "2026-08-04", "type": "expense", "category": "shopping", "amount": 19500, "note": "VAP-SHOPEE"}, {"id": "stmt-183-2026-08-04", "date": "2026-08-04", "type": "expense", "category": "food", "amount": 21000, "note": "ALFIANRIFAI"}, {"id": "stmt-184-2026-08-04", "date": "2026-08-04", "type": "expense", "category": "admin_fee", "amount": 7500, "note": "475"}, {"id": "stmt-185-2026-08-04", "date": "2026-08-04", "type": "expense", "category": "other", "amount": 50000, "note": "475"}, {"id": "stmt-186-2026-08-04", "date": "2026-08-04", "type": "expense", "category": "food", "amount": 40282, "note": "POOSE BOX"}, {"id": "stmt-187-2026-08-04", "date": "2026-08-04", "type": "expense", "category": "food", "amount": 10500, "note": "Susu asik"}, {"id": "stmt-188-2026-08-05", "date": "2026-08-05", "type": "expense", "category": "shopping", "amount": 15000, "note": "VAP-SHOPEE"}, {"id": "stmt-189-2026-08-05", "date": "2026-08-05", "type": "expense", "category": "health", "amount": 35000, "note": "BINA FARMA APOTEK"}, {"id": "stmt-190-2026-08-05", "date": "2026-08-05", "type": "expense", "category": "food", "amount": 5000, "note": "CILOK BAPANAK"}, {"id": "stmt-191-2026-08-05", "date": "2026-08-05", "type": "expense", "category": "food", "amount": 7300, "note": "IDM QRIS LIVIN"}, {"id": "stmt-192-2026-08-05", "date": "2026-08-05", "type": "expense", "category": "food", "amount": 30000, "note": "Photo"}, {"id": "stmt-193-2026-08-05", "date": "2026-08-05", "type": "expense", "category": "food", "amount": 58000, "note": "COPENHAGEN"}, {"id": "stmt-194-2026-08-05", "date": "2026-08-05", "type": "income", "category": "other_income", "amount": 33000, "note": "RAHMANDA PUTRI SETIA"}, {"id": "stmt-195-2026-08-06", "date": "2026-08-06", "type": "expense", "category": "entertainment", "amount": 32000, "note": "C28 Social Space"}, {"id": "stmt-196-2026-08-06", "date": "2026-08-06", "type": "expense", "category": "entertainment", "amount": 240000, "note": "VAP-AIRBNB * HM"}, {"id": "stmt-197-2026-08-06", "date": "2026-08-06", "type": "income", "category": "other_income", "amount": 240000, "note": "RAHMANDA PUTRI SETIA"}, {"id": "stmt-198-2026-08-06", "date": "2026-08-06", "type": "expense", "category": "shopping", "amount": 15000, "note": "VAP-SHOPEE"}, {"id": "stmt-199-2026-08-06", "date": "2026-08-06", "type": "income", "category": "gift_income", "amount": 1500000, "note": "KINDI SUHENDI"}, {"id": "stmt-200-2026-08-06", "date": "2026-08-06", "type": "expense", "category": "food", "amount": 5000, "note": "rohman h2, Makanan"}, {"id": "stmt-201-2026-08-06", "date": "2026-08-06", "type": "expense", "category": "coffee", "amount": 58000, "note": "Hoja Coffee Bar"}, {"id": "stmt-202-2026-08-06", "date": "2026-08-06", "type": "expense", "category": "food", "amount": 35000, "note": "Atedoz"}, {"id": "stmt-203-2026-08-06", "date": "2026-08-06", "type": "expense", "category": "coffee", "amount": 84000, "note": "Maverick Chicken n Coffee"}, {"id": "stmt-204-2026-08-06", "date": "2026-08-06", "type": "income", "category": "other_income", "amount": 28000, "note": "Dari BANK KEB HANA"}, {"id": "stmt-205-2026-08-07", "date": "2026-08-07", "type": "expense", "category": "food", "amount": 7400, "note": "IDM QRIS LIVIN"}, {"id": "stmt-206-2026-08-07", "date": "2026-08-07", "type": "expense", "category": "shopping", "amount": 15000, "note": "VAP-SHOPEE"}, {"id": "stmt-207-2026-08-07", "date": "2026-08-07", "type": "expense", "category": "transport", "amount": 20000, "note": "SPBU 44.55209,SLM KM5.6"}, {"id": "stmt-208-2026-08-07", "date": "2026-08-07", "type": "expense", "category": "food", "amount": 8000, "note": "TAHU BULAN QIYARA"}, {"id": "stmt-209-2026-08-07", "date": "2026-08-07", "type": "expense", "category": "travel", "amount": 380000, "note": "Access By KAI"}, {"id": "stmt-210-2026-08-07", "date": "2026-08-07", "type": "expense", "category": "shopping", "amount": 30000, "note": "Snapobox"}, {"id": "stmt-211-2026-08-07", "date": "2026-08-07", "type": "income", "category": "gift_income", "amount": 1500000, "note": "KINDI SUHENDI"}, {"id": "stmt-212-2026-08-07", "date": "2026-08-07", "type": "expense", "category": "food", "amount": 51000, "note": "COSAN BRI CAFE"}, {"id": "stmt-213-2026-08-08", "date": "2026-08-08", "type": "expense", "category": "admin_fee", "amount": 1200, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-214-2026-08-08", "date": "2026-08-08", "type": "expense", "category": "transfer", "amount": 20000, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-215-2026-08-08", "date": "2026-08-08", "type": "expense", "category": "admin_fee", "amount": 2500, "note": "Biaya transfer BI Fast"}, {"id": "stmt-216-2026-08-08", "date": "2026-08-08", "type": "expense", "category": "food", "amount": 181400, "note": "BCA"}, {"id": "stmt-217-2026-08-08", "date": "2026-08-08", "type": "expense", "category": "food", "amount": 6000, "note": "BAKSO MALANG CAK KUMIS YO"}, {"id": "stmt-218-2026-08-08", "date": "2026-08-08", "type": "expense", "category": "travel", "amount": 533000, "note": "KAI LOGISTIK - YOGYAKARTA"}, {"id": "stmt-219-2026-08-08", "date": "2026-08-08", "type": "expense", "category": "admin_fee", "amount": 1200, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-220-2026-08-08", "date": "2026-08-08", "type": "expense", "category": "transfer", "amount": 20000, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-221-2026-08-08", "date": "2026-08-08", "type": "expense", "category": "transport", "amount": 7500, "note": "GRAB TRANSPORT"}, {"id": "stmt-222-2026-08-08", "date": "2026-08-08", "type": "expense", "category": "transport", "amount": 16500, "note": "GRAB TRANSPORT"}, {"id": "stmt-223-2026-08-08", "date": "2026-08-08", "type": "expense", "category": "entertainment", "amount": 35000, "note": "Posetraits Photobooth"}, {"id": "stmt-224-2026-08-08", "date": "2026-08-08", "type": "expense", "category": "food", "amount": 39000, "note": "IDM QRIS LIVIN"}, {"id": "stmt-225-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "food", "amount": 14000, "note": "RMU RESTO ON TRAIN N 1"}, {"id": "stmt-226-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "admin_fee", "amount": 1200, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-227-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "transfer", "amount": 25000, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-228-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "food", "amount": 24000, "note": "CopyCenterDigital Yanti"}, {"id": "stmt-229-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "transport", "amount": 12300, "note": "GRAB TRANSPORT"}, {"id": "stmt-230-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "transport", "amount": 9000, "note": "GRAB TRANSPORT"}, {"id": "stmt-231-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "fashion", "amount": 454900, "note": "BATA 560-10 BLOK M"}, {"id": "stmt-232-2026-08-09", "date": "2026-08-09", "type": "income", "category": "gift_income", "amount": 1500000, "note": "KINDI SUHENDI"}, {"id": "stmt-233-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "shopping", "amount": 232900, "note": "ZES BLOK M"}, {"id": "stmt-234-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "transport", "amount": 17400, "note": "GRAB TRANSPORT"}, {"id": "stmt-235-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "transport", "amount": 11500, "note": "GRAB TRANSPORT"}, {"id": "stmt-236-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "shopping", "amount": 15000, "note": "ROTI O ST MRT BLOK M Jakarta SelatID"}, {"id": "stmt-237-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "shopping", "amount": 56000, "note": "HHB 507 BLOKM PLAZA"}, {"id": "stmt-238-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "household", "amount": 3999, "note": "PIMArt"}, {"id": "stmt-239-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "admin_fee", "amount": 1200, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-240-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "transfer", "amount": 11000, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-241-2026-08-09", "date": "2026-08-09", "type": "income", "category": "other_income", "amount": 900000, "note": "ROSSY PRATAMASARI"}, {"id": "stmt-242-2026-08-09", "date": "2026-08-09", "type": "income", "category": "gift_income", "amount": 1200000, "note": "KINDI SUHENDI"}, {"id": "stmt-243-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "admin_fee", "amount": 2500, "note": "Biaya transfer BI Fast"}, {"id": "stmt-244-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "admin_fee", "amount": 1200, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-245-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "transfer", "amount": 24000, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-246-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "food", "amount": 12000, "note": "Nasi kuning"}, {"id": "stmt-247-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "food", "amount": 20000, "note": "MASAKAN JAWA"}, {"id": "stmt-248-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "transport", "amount": 9000, "note": "GRAB TRANSPORT"}, {"id": "stmt-249-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "admin_fee", "amount": 1200, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-250-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "transfer", "amount": 26000, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-251-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "food", "amount": 6000, "note": "Nazar Bakpao , BEJI"}, {"id": "stmt-252-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "admin_fee", "amount": 1200, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-253-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "transfer", "amount": 114000, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-254-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "food", "amount": 172200, "note": "IDM QRIS LIVIN"}, {"id": "stmt-255-2026-08-10", "date": "2026-08-10", "type": "income", "category": "gift_income", "amount": 1000000, "note": "KINDI SUHENDI"}, {"id": "stmt-256-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "shopping", "amount": 18400, "note": "VAP-SHOPEE"}, {"id": "stmt-257-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "admin_fee", "amount": 1000, "note": "Pembayaran Shopee Indonesia"}, {"id": "stmt-258-2026-08-10", "date": "2026-08-10", "type": "expense", "category": "shopping", "amount": 104000, "note": "Pembayaran Shopee Indonesia"}, {"id": "stmt-259-2026-08-11", "date": "2026-08-11", "type": "expense", "category": "food", "amount": 15000, "note": "Salero Minang Bu Yus"}, {"id": "stmt-260-2026-08-11", "date": "2026-08-11", "type": "expense", "category": "food", "amount": 19000, "note": "Siomay senayan"}, {"id": "stmt-261-2026-08-11", "date": "2026-08-11", "type": "expense", "category": "food", "amount": 12000, "note": "RMS MANGA BESAR"}, {"id": "stmt-262-2026-08-11", "date": "2026-08-11", "type": "expense", "category": "shopping", "amount": 23400, "note": "VAP-SHOPEE"}, {"id": "stmt-263-2026-08-11", "date": "2026-08-11", "type": "expense", "category": "shopping", "amount": 21500, "note": "VAP-SHOPEE"}, {"id": "stmt-264-2026-08-12", "date": "2026-08-12", "type": "expense", "category": "transport", "amount": 11900, "note": "GRAB TRANSPORT"}, {"id": "stmt-265-2026-08-12", "date": "2026-08-12", "type": "expense", "category": "food", "amount": 40000, "note": "NIKMATIKA BAKERY"}, {"id": "stmt-266-2026-08-12", "date": "2026-08-12", "type": "expense", "category": "food", "amount": 33000, "note": "Kantin Mamado"}, {"id": "stmt-267-2026-08-12", "date": "2026-08-12", "type": "expense", "category": "transport", "amount": 9000, "note": "GRAB TRANSPORT"}, {"id": "stmt-268-2026-08-12", "date": "2026-08-12", "type": "expense", "category": "transport", "amount": 50000, "note": "SPBU 31.10202,A.MUIS"}, {"id": "stmt-269-2026-08-12", "date": "2026-08-12", "type": "expense", "category": "admin_fee", "amount": 7500, "note": "Biaya penarikan tunai di ATM Merah Putih"}, {"id": "stmt-270-2026-08-12", "date": "2026-08-12", "type": "expense", "category": "other", "amount": 150000, "note": "0000A0"}, {"id": "stmt-271-2026-08-12", "date": "2026-08-12", "type": "expense", "category": "admin_fee", "amount": 1200, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-272-2026-08-12", "date": "2026-08-12", "type": "expense", "category": "transfer", "amount": 138500, "note": "Pembayaran GoPay Customer"}, {"id": "stmt-273-2026-08-12", "date": "2026-08-12", "type": "expense", "category": "transport", "amount": 20700, "note": "GRAB TRANSPORT"}, {"id": "stmt-274-2026-08-12", "date": "2026-08-12", "type": "expense", "category": "shopping", "amount": 30980, "note": "VAP-SHOPEE"}, {"id": "stmt-275-2026-08-12", "date": "2026-08-12", "type": "expense", "category": "transport", "amount": 17400, "note": "GRAB TRANSPORT"}, {"id": "stmt-276-2026-08-13", "date": "2026-08-13", "type": "expense", "category": "transport", "amount": 11500, "note": "GRAB TRANSPORT"}, {"id": "stmt-277-2026-08-13", "date": "2026-08-13", "type": "expense", "category": "food", "amount": 17000, "note": "NIKMATIKA BAKERY"}, {"id": "stmt-278-2026-08-13", "date": "2026-08-13", "type": "expense", "category": "food", "amount": 20000, "note": "Salero Minang Bu Yus"}, {"id": "stmt-279-2026-08-13", "date": "2026-08-13", "type": "expense", "category": "food", "amount": 10000, "note": "BatagorJee Punnk"}, {"id": "stmt-280-2026-08-13", "date": "2026-08-13", "type": "expense", "category": "food", "amount": 8000, "note": "-RINDUMU 24-"}, {"id": "stmt-281-2026-08-13", "date": "2026-08-13", "type": "expense", "category": "shopping", "amount": 44925, "note": "VAP-SHOPEE"}, {"id": "stmt-282-2026-08-13", "date": "2026-08-13", "type": "expense", "category": "admin_fee", "amount": 2500, "note": "Biaya transfer BI Fast"}, {"id": "stmt-283-2026-08-13", "date": "2026-08-13", "type": "expense", "category": "transfer", "amount": 30000, "note": "BANK KEB HANA"}, {"id": "stmt-284-2026-08-13", "date": "2026-08-13", "type": "expense", "category": "food", "amount": 12000, "note": "RMS MANGA BESAR"}, {"id": "stmt-285-2026-08-13", "date": "2026-08-13", "type": "expense", "category": "admin_fee", "amount": 2500, "note": "Biaya transfer BI Fast"}, {"id": "stmt-286-2026-08-13", "date": "2026-08-13", "type": "expense", "category": "transfer", "amount": 45000, "note": "BANK KEB HANA"}, {"id": "stmt-287-2026-08-13", "date": "2026-08-13", "type": "income", "category": "other_income", "amount": 23000, "note": "Dari BANK KEB HANA"}, {"id": "stmt-288-2026-08-14", "date": "2026-08-14", "type": "expense", "category": "shopping", "amount": 19300, "note": "VAP-SHOPEE"}, {"id": "stmt-289-2026-08-14", "date": "2026-08-14", "type": "expense", "category": "shopping", "amount": 18400, "note": "VAP-SHOPEE"}, {"id": "stmt-290-2026-08-14", "date": "2026-08-14", "type": "expense", "category": "admin_fee", "amount": 2500, "note": "Biaya transfer BI Fast"}, {"id": "stmt-291-2026-08-14", "date": "2026-08-14", "type": "expense", "category": "food", "amount": 42000, "note": "BCA"}, {"id": "stmt-292-2026-08-14", "date": "2026-08-14", "type": "expense", "category": "shopping", "amount": 48750, "note": "VAP-SHOPEE"}, {"id": "stmt-293-2026-08-15", "date": "2026-08-15", "type": "income", "category": "other_income", "amount": 1000000, "note": "Dari BCA"}, {"id": "stmt-294-2026-08-15", "date": "2026-08-15", "type": "expense", "category": "shopping", "amount": 91740, "note": "VAP-SHOPEE"}, {"id": "stmt-295-2026-08-15", "date": "2026-08-15", "type": "income", "category": "gift_income", "amount": 1000000, "note": "KINDI SUHENDI"}, {"id": "stmt-296-2026-08-15", "date": "2026-08-15", "type": "expense", "category": "admin_fee", "amount": 1000, "note": "Pembayaran ShopeePay"}, {"id": "stmt-297-2026-08-15", "date": "2026-08-15", "type": "expense", "category": "transfer", "amount": 35359, "note": "Pembayaran ShopeePay"}, {"id": "stmt-298-2026-08-15", "date": "2026-08-15", "type": "expense", "category": "admin_fee", "amount": 1000, "note": "Pembayaran ShopeePay"}, {"id": "stmt-299-2026-08-15", "date": "2026-08-15", "type": "expense", "category": "transfer", "amount": 20000, "note": "Pembayaran ShopeePay"}, {"id": "stmt-300-2026-08-15", "date": "2026-08-15", "type": "expense", "category": "shopping", "amount": 78000, "note": "VAP-SHOPEE"}, {"id": "stmt-301-2026-08-15", "date": "2026-08-15", "type": "expense", "category": "shopping", "amount": 44600, "note": "VAP-SHOPEE"}, {"id": "stmt-302-2026-08-16", "date": "2026-08-16", "type": "expense", "category": "shopping", "amount": 76400, "note": "PT Tokopedia"}, {"id": "stmt-303-2026-08-16", "date": "2026-08-16", "type": "expense", "category": "shopping", "amount": 20350, "note": "VAP-SHOPEE"}, {"id": "stmt-304-2026-08-16", "date": "2026-08-16", "type": "expense", "category": "shopping", "amount": 23500, "note": "VAP-SHOPEE"}, {"id": "stmt-305-2026-08-16", "date": "2026-08-16", "type": "expense", "category": "shopping", "amount": 169100, "note": "PT Tokopedia"}, {"id": "stmt-306-2026-08-16", "date": "2026-08-16", "type": "expense", "category": "food", "amount": 41000, "note": "BAKMI GM-MELAWAI"}, {"id": "stmt-307-2026-08-16", "date": "2026-08-16", "type": "expense", "category": "food", "amount": 25000, "note": "Susu soree blok m"}, {"id": "stmt-308-2026-08-16", "date": "2026-08-16", "type": "expense", "category": "food", "amount": 16700, "note": "IDM QRIS LIVIN"}, {"id": "stmt-309-2026-08-17", "date": "2026-08-17", "type": "expense", "category": "shopping", "amount": 23850, "note": "VAP-SHOPEE"}, {"id": "stmt-310-2026-08-17", "date": "2026-08-17", "type": "income", "category": "other_income", "amount": 169100, "note": "DARI TOKOPEDIA"}, {"id": "stmt-311-2026-08-17", "date": "2026-08-17", "type": "income", "category": "other_income", "amount": 37199, "note": "DARI AIRPAY INTERNATIONAL"}, {"id": "stmt-312-2026-08-17", "date": "2026-08-17", "type": "income", "category": "other_income", "amount": 17900, "note": "DARI AIRPAY INTERNATIONAL"}, {"id": "stmt-313-2026-08-17", "date": "2026-08-17", "type": "expense", "category": "food", "amount": 24000, "note": "Warung Mamoka Bahari, Sta"}, {"id": "stmt-314-2026-08-17", "date": "2026-08-17", "type": "expense", "category": "transport", "amount": 12400, "note": "GRAB TRANSPORT"}, {"id": "stmt-315-2026-08-17", "date": "2026-08-17", "type": "expense", "category": "shopping", "amount": 201000, "note": "POP MART GI"}, {"id": "stmt-316-2026-08-17", "date": "2026-08-17", "type": "expense", "category": "food", "amount": 40000, "note": "FUTAGO YA"}, {"id": "stmt-317-2026-08-17", "date": "2026-08-17", "type": "expense", "category": "food", "amount": 72000, "note": "TUKU BLOK M"}, {"id": "stmt-318-2026-08-17", "date": "2026-08-17", "type": "expense", "category": "transport", "amount": 21600, "note": "GRAB TRANSPORT"}, {"id": "stmt-319-2026-08-17", "date": "2026-08-17", "type": "expense", "category": "shopping", "amount": 16000, "note": "VAP-SHOPEE"}, {"id": "stmt-320-2026-08-18", "date": "2026-08-18", "type": "expense", "category": "shopping", "amount": 24500, "note": "VAP-SHOPEE"}, {"id": "stmt-321-2026-08-18", "date": "2026-08-18", "type": "expense", "category": "shopping", "amount": 22400, "note": "VAP-SHOPEE"}, {"id": "stmt-322-2026-08-18", "date": "2026-08-18", "type": "expense", "category": "shopping", "amount": 3800, "note": "ALGO CIKOKOL - QRIS"}, {"id": "stmt-323-2026-08-18", "date": "2026-08-18", "type": "expense", "category": "coffee", "amount": 51975, "note": "LUC COFFEE"}, {"id": "stmt-324-2026-08-18", "date": "2026-08-18", "type": "expense", "category": "food", "amount": 35000, "note": "BAKMI BANGKA 888"}, {"id": "stmt-325-2026-08-18", "date": "2026-08-18", "type": "expense", "category": "shopping", "amount": 16000, "note": "VAP-SHOPEE"}, {"id": "stmt-326-2026-08-18", "date": "2026-08-18", "type": "income", "category": "other_income", "amount": 40500, "note": "DARI AIRPAY INTERNATIONAL"}, {"id": "stmt-327-2026-08-18", "date": "2026-08-18", "type": "expense", "category": "shopping", "amount": 31500, "note": "VAP-SHOPEE"}, {"id": "stmt-328-2026-08-18", "date": "2026-08-18", "type": "expense", "category": "food", "amount": 58000, "note": "IDM QRIS LIVIN"}, {"id": "stmt-329-2026-08-19", "date": "2026-08-19", "type": "expense", "category": "transport", "amount": 11300, "note": "GRAB TRANSPORT"}, {"id": "stmt-330-2026-08-19", "date": "2026-08-19", "type": "expense", "category": "food", "amount": 30000, "note": "Kantin Mamado"}, {"id": "stmt-331-2026-08-19", "date": "2026-08-19", "type": "expense", "category": "food", "amount": 20000, "note": "Salero Minang Bu Yus"}, {"id": "stmt-332-2026-08-19", "date": "2026-08-19", "type": "expense", "category": "food", "amount": 13000, "note": "TAROBUN MANGGA BESAR"}, {"id": "stmt-333-2026-08-20", "date": "2026-08-20", "type": "expense", "category": "transport", "amount": 10300, "note": "VAP-Grab* A-9NU"}, {"id": "stmt-334-2026-08-20", "date": "2026-08-20", "type": "expense", "category": "food", "amount": 24000, "note": "NIKMATIKA BAKERY"}, {"id": "stmt-335-2026-08-20", "date": "2026-08-20", "type": "expense", "category": "coffee", "amount": 20000, "note": "KOPI DIPLOMASI KEMENLU QR"}, {"id": "stmt-336-2026-08-20", "date": "2026-08-20", "type": "expense", "category": "food", "amount": 17000, "note": "KEDAI MARWA"}, {"id": "stmt-337-2026-08-20", "date": "2026-08-20", "type": "expense", "category": "food", "amount": 6000, "note": "Kantin Mamado"}, {"id": "stmt-338-2026-08-20", "date": "2026-08-20", "type": "expense", "category": "food", "amount": 15000, "note": "MASAKAN JAWA"}, {"id": "stmt-339-2026-08-20", "date": "2026-08-20", "type": "expense", "category": "transport", "amount": 20000, "note": "VAP-Grab* A-9OW"}, {"id": "stmt-340-2026-08-20", "date": "2026-08-20", "type": "expense", "category": "shopping", "amount": 34020, "note": "VAP-SHOPEE"}, {"id": "stmt-341-2026-08-20", "date": "2026-08-20", "type": "expense", "category": "food", "amount": 30800, "note": "IDM QRIS LIVIN"}, {"id": "stmt-342-2026-08-21", "date": "2026-08-21", "type": "expense", "category": "food", "amount": 12000, "note": "RMS CIKINI"}, {"id": "stmt-343-2026-08-21", "date": "2026-08-21", "type": "expense", "category": "coffee", "amount": 76505, "note": "Kopikina Cikini 1"}, {"id": "stmt-344-2026-08-21", "date": "2026-08-21", "type": "expense", "category": "food", "amount": 35000, "note": "Warung Ayam"}, {"id": "stmt-345-2026-08-21", "date": "2026-08-21", "type": "expense", "category": "food", "amount": 120000, "note": "TUKU BLOK M"}, {"id": "stmt-346-2026-08-21", "date": "2026-08-21", "type": "income", "category": "other_income", "amount": 30000, "note": "Dari BRI"}, {"id": "stmt-347-2026-08-21", "date": "2026-08-21", "type": "income", "category": "other_income", "amount": 30000, "note": "Dari BRI"}, {"id": "stmt-348-2026-08-21", "date": "2026-08-21", "type": "expense", "category": "shopping", "amount": 24500, "note": "VAP-SHOPEE"}, {"id": "stmt-349-2026-08-22", "date": "2026-08-22", "type": "expense", "category": "shopping", "amount": 24184, "note": "VAP-SHOPEE"}, {"id": "stmt-350-2026-08-22", "date": "2026-08-22", "type": "expense", "category": "shopping", "amount": 29600, "note": "VAP-SHOPEE"}, {"id": "stmt-351-2026-08-22", "date": "2026-08-22", "type": "expense", "category": "shopping", "amount": 42300, "note": "VAP-SHOPEE"}, {"id": "stmt-352-2026-08-23", "date": "2026-08-23", "type": "expense", "category": "transport", "amount": 22000, "note": "VAP-Grab* A-9OB"}, {"id": "stmt-353-2026-08-23", "date": "2026-08-23", "type": "expense", "category": "coffee", "amount": 40425, "note": "SECOND FLOOR COFFEE MT"}, {"id": "stmt-354-2026-08-23", "date": "2026-08-23", "type": "expense", "category": "shopping", "amount": 21090, "note": "VAP-SHOPEE"}, {"id": "stmt-355-2026-08-23", "date": "2026-08-23", "type": "expense", "category": "transfer", "amount": 50000, "note": "Top up e-Money"}, {"id": "stmt-356-2026-08-24", "date": "2026-08-24", "type": "expense", "category": "transport", "amount": 10300, "note": "VAP-Grab* A-9OF"}, {"id": "stmt-357-2026-08-24", "date": "2026-08-24", "type": "expense", "category": "food", "amount": 10000, "note": "roti tan ek tjoan"}, {"id": "stmt-358-2026-08-24", "date": "2026-08-24", "type": "expense", "category": "food", "amount": 15000, "note": "Kantin Ibu Ratinah"}, {"id": "stmt-359-2026-08-24", "date": "2026-08-24", "type": "expense", "category": "food", "amount": 13000, "note": "OKAACHA CAFE"}, {"id": "stmt-360-2026-08-24", "date": "2026-08-24", "type": "expense", "category": "transport", "amount": 19000, "note": "VAP-Grab* A-9OG"}, {"id": "stmt-361-2026-08-24", "date": "2026-08-24", "type": "expense", "category": "food", "amount": 10000, "note": "Pembayaran QR ke Cakwe & Kue Bantal Koh Ab"}, {"id": "stmt-362-2026-08-24", "date": "2026-08-24", "type": "expense", "category": "food", "amount": 15000, "note": "Tahu PDHR Mangga 2"}, {"id": "stmt-363-2026-08-25", "date": "2026-08-25", "type": "expense", "category": "transport", "amount": 19000, "note": "VAP-Grab* A-9OJ"}, {"id": "stmt-364-2026-08-25", "date": "2026-08-25", "type": "expense", "category": "transport", "amount": 7500, "note": "VAP-Grab* A-9OK"}, {"id": "stmt-365-2026-08-25", "date": "2026-08-25", "type": "expense", "category": "transport", "amount": 7500, "note": "VAP-Grab* A-9OK"}, {"id": "stmt-366-2026-08-25", "date": "2026-08-25", "type": "expense", "category": "coffee", "amount": 48000, "note": "KOPIKALYAN"}, {"id": "stmt-367-2026-08-25", "date": "2026-08-25", "type": "expense", "category": "transport", "amount": 20000, "note": "VAP-Grab* A-9OL"}, {"id": "stmt-368-2026-08-25", "date": "2026-08-25", "type": "expense", "category": "food", "amount": 13000, "note": "RMS CAWANG"}, {"id": "stmt-369-2026-08-25", "date": "2026-08-25", "type": "expense", "category": "food", "amount": 5000, "note": "ARUMI AKBAR"}, {"id": "stmt-370-2026-08-26", "date": "2026-08-26", "type": "expense", "category": "transport", "amount": 10300, "note": "VAP-Grab* A-9ON"}, {"id": "stmt-371-2026-08-26", "date": "2026-08-26", "type": "expense", "category": "food", "amount": 17000, "note": "Salero Minang Bu Yus"}, {"id": "stmt-372-2026-08-26", "date": "2026-08-26", "type": "expense", "category": "coffee", "amount": 25000, "note": "KOPI DIPLOMASI KEMENLU QR"}, {"id": "stmt-373-2026-08-26", "date": "2026-08-26", "type": "expense", "category": "food", "amount": 18000, "note": "Bakmi Rara"}, {"id": "stmt-374-2026-08-26", "date": "2026-08-26", "type": "expense", "category": "food", "amount": 5000, "note": "Cilor Sadulur"}, {"id": "stmt-375-2026-08-26", "date": "2026-08-26", "type": "expense", "category": "shopping", "amount": 24500, "note": "VAP-SHOPEE"}, {"id": "stmt-376-2026-08-26", "date": "2026-08-26", "type": "expense", "category": "food", "amount": 14000, "note": "Pembayaran QR ke Cakwe & Kue Bantal Koh Ab"}, {"id": "stmt-377-2026-08-26", "date": "2026-08-26", "type": "expense", "category": "food", "amount": 7000, "note": "0792 MARTABAK MANIS"}, {"id": "stmt-378-2026-08-26", "date": "2026-08-26", "type": "income", "category": "gift_income", "amount": 500000, "note": "KINDI SUHENDI"}, {"id": "stmt-379-2026-08-26", "date": "2026-08-26", "type": "expense", "category": "food", "amount": 17800, "note": "IDM QRIS LIVIN"}, {"id": "stmt-380-2026-08-27", "date": "2026-08-27", "type": "expense", "category": "transport", "amount": 20000, "note": "VAP-Grab* A-9OR"}, {"id": "stmt-381-2026-08-27", "date": "2026-08-27", "type": "expense", "category": "transfer", "amount": 93700, "note": "Pembayaran OVO"}, {"id": "stmt-382-2026-08-27", "date": "2026-08-27", "type": "expense", "category": "transfer", "amount": 10000, "note": "Pembayaran OVO"}, {"id": "stmt-383-2026-08-27", "date": "2026-08-27", "type": "expense", "category": "transport", "amount": 20000, "note": "VAP-Grab* A-9OS"}, {"id": "stmt-384-2026-08-27", "date": "2026-08-27", "type": "expense", "category": "shopping", "amount": 26100, "note": "PT Tokopedia"}, {"id": "stmt-385-2026-08-27", "date": "2026-08-27", "type": "expense", "category": "food", "amount": 53000, "note": "ESB RESTAURANT TECHNOLOGY"}, {"id": "stmt-386-2026-08-27", "date": "2026-08-27", "type": "expense", "category": "transport", "amount": 19900, "note": "VAP-Grab* A-9OT"}, {"id": "stmt-387-2026-08-27", "date": "2026-08-27", "type": "expense", "category": "transport", "amount": 20000, "note": "VAP-Grab* A-9OT"}, {"id": "stmt-388-2026-08-27", "date": "2026-08-27", "type": "expense", "category": "food", "amount": 14000, "note": "Pembayaran QR ke Cakwe & Kue Bantal Koh Ab"}, {"id": "stmt-389-2026-08-28", "date": "2026-08-28", "type": "expense", "category": "transport", "amount": 20000, "note": "VAP-Grab* A-9OV"}, {"id": "stmt-390-2026-08-28", "date": "2026-08-28", "type": "expense", "category": "shopping", "amount": 31500, "note": "VAP-SHOPEE"}, {"id": "stmt-391-2026-08-28", "date": "2026-08-28", "type": "expense", "category": "shopping", "amount": 57900, "note": "PT Tokopedia"}, {"id": "stmt-392-2026-08-28", "date": "2026-08-28", "type": "expense", "category": "shopping", "amount": 21640, "note": "VAP-SHOPEE"}, {"id": "stmt-393-2026-08-28", "date": "2026-08-28", "type": "expense", "category": "bills", "amount": 60000, "note": "XL"}, {"id": "stmt-394-2026-08-29", "date": "2026-08-29", "type": "expense", "category": "transport", "amount": 20000, "note": "VAP-Grab* A-9P4"}, {"id": "stmt-395-2026-08-29", "date": "2026-08-29", "type": "expense", "category": "food", "amount": 5500, "note": "IDM QRIS LIVIN"}, {"id": "stmt-396-2026-08-29", "date": "2026-08-29", "type": "expense", "category": "transport", "amount": 7500, "note": "VAP-Grab* A-9P5"}, {"id": "stmt-397-2026-08-29", "date": "2026-08-29", "type": "expense", "category": "transport", "amount": 20000, "note": "VAP-Grab* A-9P5"}, {"id": "stmt-398-2026-08-29", "date": "2026-08-29", "type": "income", "category": "other_income", "amount": 200000, "note": "Dari BANK KEB HANA"}, {"id": "stmt-399-2026-08-30", "date": "2026-08-30", "type": "income", "category": "other_income", "amount": 32500, "note": "Dari"}, {"id": "stmt-400-2026-08-30", "date": "2026-08-30", "type": "expense", "category": "shopping", "amount": 32000, "note": "VAP-SHOPEE"}, {"id": "stmt-401-2026-08-30", "date": "2026-08-30", "type": "expense", "category": "shopping", "amount": 32500, "note": "VAP-SHOPEE"}, {"id": "stmt-402-2026-08-30", "date": "2026-08-30", "type": "expense", "category": "transport", "amount": 20000, "note": "VAP-Grab* A-9P8"}, {"id": "stmt-403-2026-08-30", "date": "2026-08-30", "type": "expense", "category": "household", "amount": 11800, "note": "INDOMARET TK04 DWI WARNA Jakarta PusatID"}, {"id": "stmt-404-2026-08-30", "date": "2026-08-30", "type": "expense", "category": "transport", "amount": 7500, "note": "VAP-Grab* A-9P9"}, {"id": "stmt-405-2026-08-30", "date": "2026-08-30", "type": "expense", "category": "coffee", "amount": 25000, "note": "Kopi Lima Detik Pangpol"}, {"id": "stmt-406-2026-08-30", "date": "2026-08-30", "type": "expense", "category": "food", "amount": 24000, "note": "THREE O' CLOCK PANGPOL"}, {"id": "stmt-407-2026-08-30", "date": "2026-08-30", "type": "expense", "category": "food", "amount": 39000, "note": "qr chikuro plaza blok m"}, {"id": "stmt-408-2026-08-31", "date": "2026-08-31", "type": "expense", "category": "transport", "amount": 10300, "note": "VAP-Grab* A-9PB"}, {"id": "stmt-409-2026-08-31", "date": "2026-08-31", "type": "expense", "category": "food", "amount": 17000, "note": "MASAKAN JAWA"}, {"id": "stmt-410-2026-08-31", "date": "2026-08-31", "type": "expense", "category": "food", "amount": 6000, "note": "Kantin Mamado"}, {"id": "stmt-411-2026-08-31", "date": "2026-08-31", "type": "expense", "category": "food", "amount": 8000, "note": "RINDUMU 186"}, {"id": "stmt-412-2026-08-31", "date": "2026-08-31", "type": "expense", "category": "admin_fee", "amount": 5000, "note": "Biaya gagal transaksi kartu"}, {"id": "stmt-413-2026-08-31", "date": "2026-08-31", "type": "income", "category": "other_income", "amount": 50000, "note": "ROSSY PRATAMASARI"}, {"id": "stmt-414-2026-08-31", "date": "2026-08-31", "type": "expense", "category": "transport", "amount": 20000, "note": "VAP-Grab* A-9PD"}, {"id": "stmt-415-2026-08-31", "date": "2026-08-31", "type": "expense", "category": "admin_fee", "amount": 6000, "note": "Biaya administrasi rekening"}, {"id": "stmt-416-2026-09-01", "date": "2026-09-01", "type": "expense", "category": "transport", "amount": 10300, "note": "VAP-Grab* A-9PG"}, {"id": "stmt-417-2026-09-01", "date": "2026-09-01", "type": "expense", "category": "food", "amount": 18000, "note": "MASAKAN JAWA"}, {"id": "stmt-418-2026-09-01", "date": "2026-09-01", "type": "income", "category": "gift_income", "amount": 500000, "note": "KINDI SUHENDI"}, {"id": "stmt-419-2026-09-01", "date": "2026-09-01", "type": "expense", "category": "food", "amount": 100000, "note": "northcut - barbershop"}, {"id": "stmt-420-2026-09-01", "date": "2026-09-01", "type": "expense", "category": "food", "amount": 6000, "note": "Kantin Mamado"}, {"id": "stmt-421-2026-09-01", "date": "2026-09-01", "type": "expense", "category": "food", "amount": 18000, "note": "Restoran"}, {"id": "stmt-422-2026-09-01", "date": "2026-09-01", "type": "expense", "category": "transport", "amount": 7500, "note": "VAP-Grab* A-9PH"}, {"id": "stmt-423-2026-09-01", "date": "2026-09-01", "type": "expense", "category": "transport", "amount": 7500, "note": "VAP-Grab* A-9PI"}, {"id": "stmt-424-2026-09-01", "date": "2026-09-01", "type": "expense", "category": "shopping", "amount": 24500, "note": "VAP-SHOPEE"}, {"id": "stmt-425-2026-09-01", "date": "2026-09-01", "type": "expense", "category": "other", "amount": 50000, "note": "8"}, {"id": "stmt-426-2026-09-01", "date": "2026-09-01", "type": "income", "category": "gift_income", "amount": 800000, "note": "KINDI SUHENDI"}, {"id": "stmt-427-2026-09-02", "date": "2026-09-02", "type": "expense", "category": "transport", "amount": 10100, "note": "VAP-Grab* A-9PK"}, {"id": "stmt-428-2026-09-02", "date": "2026-09-02", "type": "expense", "category": "food", "amount": 20000, "note": "MASAKAN JAWA"}, {"id": "stmt-429-2026-09-02", "date": "2026-09-02", "type": "expense", "category": "coffee", "amount": 25000, "note": "KOPI DIPLOMASI KEMENLU QR"}, {"id": "stmt-430-2026-09-02", "date": "2026-09-02", "type": "expense", "category": "food", "amount": 6000, "note": "Kantin Mamado"}, {"id": "stmt-431-2026-09-02", "date": "2026-09-02", "type": "expense", "category": "transport", "amount": 15500, "note": "VAP-Grab* A-9PL"}, {"id": "stmt-432-2026-09-02", "date": "2026-09-02", "type": "expense", "category": "transfer", "amount": 50000, "note": "Top up e-Money"}, {"id": "stmt-433-2026-09-02", "date": "2026-09-02", "type": "expense", "category": "shopping", "amount": 27300, "note": "VAP-SHOPEE"}, {"id": "stmt-434-2026-09-03", "date": "2026-09-03", "type": "expense", "category": "admin_fee", "amount": 6000, "note": "Biaya administrasi kartu debit"}, {"id": "stmt-435-2026-09-03", "date": "2026-09-03", "type": "expense", "category": "transport", "amount": 10100, "note": "VAP-Grab* A-9PO"}, {"id": "stmt-436-2026-09-03", "date": "2026-09-03", "type": "expense", "category": "coffee", "amount": 8000, "note": "jagocoffee.com/"}, {"id": "stmt-437-2026-09-03", "date": "2026-09-03", "type": "expense", "category": "food", "amount": 20000, "note": "MASAKAN JAWA"}, {"id": "stmt-438-2026-09-03", "date": "2026-09-03", "type": "expense", "category": "food", "amount": 18000, "note": "Bintan Resto Soup"}, {"id": "stmt-439-2026-09-03", "date": "2026-09-03", "type": "expense", "category": "food", "amount": 6000, "note": "Kantin Mamado"}, {"id": "stmt-440-2026-09-03", "date": "2026-09-03", "type": "expense", "category": "food", "amount": 8000, "note": "-RINDUMU 24-"}, {"id": "stmt-441-2026-09-03", "date": "2026-09-03", "type": "expense", "category": "travel", "amount": 320000, "note": "Access By KAI"}, {"id": "stmt-442-2026-09-03", "date": "2026-09-03", "type": "expense", "category": "transport", "amount": 7500, "note": "VAP-Grab* A-9PP"}, {"id": "stmt-443-2026-09-03", "date": "2026-09-03", "type": "expense", "category": "food", "amount": 8000, "note": "Anyar Bakery Jakarta"}, {"id": "stmt-444-2026-09-03", "date": "2026-09-03", "type": "expense", "category": "travel", "amount": 11000, "note": "Access By KAI"}, {"id": "stmt-445-2026-09-03", "date": "2026-09-03", "type": "expense", "category": "household", "amount": 11000, "note": "Lokomart"}, {"id": "stmt-446-2026-09-04", "date": "2026-09-04", "type": "expense", "category": "transport", "amount": 13000, "note": "VAP-Grab* A-9PR"}, {"id": "stmt-447-2026-09-04", "date": "2026-09-04", "type": "expense", "category": "coffee", "amount": 50000, "note": "COSAN COFFEE_ADP QR"}, {"id": "stmt-448-2026-09-04", "date": "2026-09-04", "type": "expense", "category": "food", "amount": 90000, "note": "TUKU JOGJA"}, {"id": "stmt-449-2026-09-06", "date": "2026-09-06", "type": "income", "category": "gift_income", "amount": 2650000, "note": "KINDI SUHENDI"}, {"id": "stmt-450-2026-09-06", "date": "2026-09-06", "type": "expense", "category": "admin_fee", "amount": 2500, "note": "Biaya transfer BI Fast"}, {"id": "stmt-451-2026-09-06", "date": "2026-09-06", "type": "expense", "category": "entertainment", "amount": 35000, "note": "Piction Studio Photobooth"}, {"id": "stmt-452-2026-09-06", "date": "2026-09-06", "type": "expense", "category": "coffee", "amount": 50000, "note": "COSAN COFFEE_ADP QR"}, {"id": "stmt-453-2026-09-06", "date": "2026-09-06", "type": "expense", "category": "household", "amount": 41000, "note": "Lokomart"}, {"id": "stmt-454-2026-09-07", "date": "2026-09-07", "type": "expense", "category": "travel", "amount": 11000, "note": "Access By KAI"}, {"id": "stmt-455-2026-09-07", "date": "2026-09-07", "type": "expense", "category": "food", "amount": 16000, "note": "IDM QRIS LIVIN"}, {"id": "stmt-456-2026-09-07", "date": "2026-09-07", "type": "expense", "category": "transport", "amount": 17100, "note": "VAP-Grab* A-9Q7"}, {"id": "stmt-457-2026-09-07", "date": "2026-09-07", "type": "expense", "category": "transport", "amount": 10900, "note": "VAP-Grab* A-9Q8"}, {"id": "stmt-458-2026-09-07", "date": "2026-09-07", "type": "expense", "category": "coffee", "amount": 12000, "note": "Jago Coffee"}, {"id": "stmt-459-2026-09-07", "date": "2026-09-07", "type": "expense", "category": "food", "amount": 19000, "note": "Siomay senayan"}, {"id": "stmt-460-2026-09-07", "date": "2026-09-07", "type": "expense", "category": "food", "amount": 8000, "note": "-RINDUMU 24-"}, {"id": "stmt-461-2026-09-07", "date": "2026-09-07", "type": "expense", "category": "food", "amount": 16000, "note": "NIKMATIKA BAKERY"}, {"id": "stmt-462-2026-09-07", "date": "2026-09-07", "type": "expense", "category": "transport", "amount": 7500, "note": "VAP-Grab* A-9QA"}, {"id": "stmt-463-2026-09-07", "date": "2026-09-07", "type": "expense", "category": "transport", "amount": 20000, "note": "VAP-Grab* A-9QA"}, {"id": "stmt-464-2026-09-07", "date": "2026-09-07", "type": "expense", "category": "food", "amount": 25300, "note": "IDM QRIS LIVIN"}, {"id": "stmt-465-2026-09-08", "date": "2026-09-08", "type": "expense", "category": "transport", "amount": 10900, "note": "VAP-Grab* A-9QC"}, {"id": "stmt-466-2026-09-08", "date": "2026-09-08", "type": "expense", "category": "coffee", "amount": 8000, "note": "jagocoffee.com/"}, {"id": "stmt-467-2026-09-08", "date": "2026-09-08", "type": "expense", "category": "coffee", "amount": 16000, "note": "KOPI DIPLOMASI KEMENLU QR"}, {"id": "stmt-468-2026-09-08", "date": "2026-09-08", "type": "expense", "category": "food", "amount": 13000, "note": "Pecel Lele Cak Heri, Pasa"}, {"id": "stmt-469-2026-09-08", "date": "2026-09-08", "type": "expense", "category": "food", "amount": 3000, "note": "Kios Warung Subhan"}, {"id": "stmt-470-2026-09-08", "date": "2026-09-08", "type": "expense", "category": "transport", "amount": 20000, "note": "VAP-Grab* A-9QE"}, {"id": "stmt-471-2026-09-08", "date": "2026-09-08", "type": "income", "category": "gift_income", "amount": 200000, "note": "KINDI SUHENDI"}, {"id": "stmt-472-2026-09-08", "date": "2026-09-08", "type": "expense", "category": "food", "amount": 17500, "note": "Pembayaran QR ke Cakwe & Kue Bantal Koh Ab"}, {"id": "stmt-473-2026-09-08", "date": "2026-09-08", "type": "expense", "category": "food", "amount": 13000, "note": "BAKMI CILACAP"}, {"id": "stmt-474-2026-09-09", "date": "2026-09-09", "type": "expense", "category": "transport", "amount": 10900, "note": "VAP-Grab* A-9QH"}, {"id": "stmt-475-2026-09-09", "date": "2026-09-09", "type": "expense", "category": "coffee", "amount": 8000, "note": "jagocoffee.com/"}, {"id": "stmt-476-2026-09-09", "date": "2026-09-09", "type": "expense", "category": "food", "amount": 16000, "note": "MASAKAN JAWA"}, {"id": "stmt-477-2026-09-09", "date": "2026-09-09", "type": "expense", "category": "coffee", "amount": 16000, "note": "KOPI DIPLOMASI KEMENLU QR"}, {"id": "stmt-478-2026-09-09", "date": "2026-09-09", "type": "expense", "category": "food", "amount": 22000, "note": "Kedai Bu Nur 45"}, {"id": "stmt-479-2026-09-09", "date": "2026-09-09", "type": "expense", "category": "food", "amount": 3000, "note": "Kios Warung Subhan"}, {"id": "stmt-480-2026-09-09", "date": "2026-09-09", "type": "expense", "category": "shopping", "amount": 19000, "note": "PT Tokopedia"}, {"id": "stmt-481-2026-09-09", "date": "2026-09-09", "type": "expense", "category": "food", "amount": 2000, "note": "WINGSTOP ST GAMBIR"}, {"id": "stmt-482-2026-09-09", "date": "2026-09-09", "type": "expense", "category": "transport", "amount": 10700, "note": "VAP-Grab* A-9QI"}, {"id": "stmt-483-2026-09-09", "date": "2026-09-09", "type": "expense", "category": "food", "amount": 10000, "note": "Tahu PDHR Mangga 2"}, {"id": "stmt-484-2026-09-10", "date": "2026-09-10", "type": "expense", "category": "transport", "amount": 10900, "note": "VAP-Grab* A-9QL"}, {"id": "stmt-485-2026-09-10", "date": "2026-09-10", "type": "expense", "category": "coffee", "amount": 8000, "note": "jagocoffee.com/"}, {"id": "stmt-486-2026-09-10", "date": "2026-09-10", "type": "expense", "category": "food", "amount": 14000, "note": "WARUNG KUSMA"}, {"id": "stmt-487-2026-09-10", "date": "2026-09-10", "type": "expense", "category": "transport", "amount": 11400, "note": "VAP-Grab* A-9QM"}, {"id": "stmt-488-2026-09-10", "date": "2026-09-10", "type": "income", "category": "gift_income", "amount": 200000, "note": "KINDI SUHENDI"}, {"id": "stmt-489-2026-09-10", "date": "2026-09-10", "type": "expense", "category": "admin_fee", "amount": 2500, "note": "Biaya transfer BI Fast"}, {"id": "stmt-490-2026-09-10", "date": "2026-09-10", "type": "expense", "category": "food", "amount": 22000, "note": "BCA"}, {"id": "stmt-491-2026-09-10", "date": "2026-09-10", "type": "expense", "category": "food", "amount": 17900, "note": "IDM QRIS LIVIN"}, {"id": "savings-out-4-2026-08-09", "date": "2026-08-09", "type": "expense", "category": "savings_out", "amount": 3978020, "note": "Transfer ke BCA (tabungan)"}, {"id": "savings-out-5-2026-09-06", "date": "2026-09-06", "type": "expense", "category": "savings_out", "amount": 2631310, "note": "Transfer ke BCA (tabungan)"}, {"id": "stmt-492-2026-09-11", "date": "2026-09-11", "type": "expense", "category": "food", "amount": 7000, "note": "UBI & KENTANG"}, {"id": "stmt-493-2026-09-11", "date": "2026-09-11", "type": "expense", "category": "coffee", "amount": 37000, "note": "KOPI THREE O'CLOCK"}, {"id": "stmt-494-2026-09-11", "date": "2026-09-11", "type": "income", "category": "salary", "amount": 5729876, "note": "MAGANGHUB"}, {"id": "stmt-495-2026-09-11", "date": "2026-09-11", "type": "expense", "category": "food", "amount": 31700, "note": "SOLARIA"}, {"id": "stmt-496-2026-09-11", "date": "2026-09-11", "type": "expense", "category": "coffee", "amount": 10000, "note": "JAGO"}, {"id": "stmt-497-2026-09-11", "date": "2026-09-11", "type": "expense", "category": "gift", "amount": 185000, "note": "POPMART MANDA"}, {"id": "stmt-498-2026-09-11", "date": "2026-09-11", "type": "expense", "category": "savings_out", "amount": 1923367, "note": "SAVING"}, {"id": "stmt-499-2026-09-11", "date": "2026-09-11", "type": "expense", "category": "fashion", "amount": 178000, "note": "WILMER STUDIOS"}, {"id": "stmt-500-2026-09-11", "date": "2026-09-11", "type": "expense", "category": "fashion", "amount": 600000, "note": "BARREL PANTS UNIQLO"}, {"id": "stmt-501-2026-09-11", "date": "2026-09-11", "type": "expense", "category": "transport", "amount": 19200, "note": "GRAB"}, {"id": "stmt-502-2026-09-11", "date": "2026-09-11", "type": "expense", "category": "food", "amount": 21000, "note": "AYAM PAK GEMBUS"}, {"id": "stmt-503-2026-09-11", "date": "2026-09-11", "type": "expense", "category": "fashion", "amount": 51400, "note": "KAOS DALEMAN PUTIH"}, {"id": "stmt-504-2026-09-11", "date": "2026-09-11", "type": "expense", "category": "fashion", "amount": 129000, "note": "COMMON GOODS X NATMOS WHITE T-SHIRT"}, {"id": "stmt-505-2026-09-12", "date": "2026-09-12", "type": "expense", "category": "food", "amount": 51000, "note": "TRAKTIR SALVEZZA"}, {"id": "stmt-506-2026-09-12", "date": "2026-09-12", "type": "expense", "category": "food", "amount": 20000, "note": "TIANLALA"}, {"id": "stmt-507-2026-09-12", "date": "2026-09-12", "type": "expense", "category": "subscription", "amount": 26200, "note": "VIDIO.COM"}, {"id": "stmt-508-2026-09-12", "date": "2026-09-12", "type": "expense", "category": "other", "amount": 58200, "note": "TOP UP OVO"}, {"id": "stmt-509-2026-09-12", "date": "2026-09-12", "type": "expense", "category": "household", "amount": 95600, "note": "ALAT MANDI"}, {"id": "stmt-510-2026-09-12", "date": "2026-09-12", "type": "expense", "category": "food", "amount": 17500, "note": "CAKWE"}, {"id": "stmt-511-2026-09-13", "date": "2026-09-13", "type": "expense", "category": "food", "amount": 33800, "note": "AYAM GEPREK PADEMANGAN"}, {"id": "stmt-512-2026-09-13", "date": "2026-09-13", "type": "expense", "category": "transfer", "amount": 202500, "note": "TF NAJWA SYIFA"}, {"id": "stmt-513-2026-09-13", "date": "2026-09-13", "type": "expense", "category": "food", "amount": 24500, "note": "AYAM BANG DAVA"}, {"id": "stmt-514-2026-09-13", "date": "2026-09-13", "type": "expense", "category": "coffee", "amount": 18000, "note": "KOPI CALF"}, {"id": "stmt-515-2026-09-13", "date": "2026-09-13", "type": "expense", "category": "other", "amount": 50000, "note": "AMBIL UANG"}, {"id": "stmt-516-2026-09-13", "date": "2026-09-13", "type": "expense", "category": "shopping", "amount": 33600, "note": "HEYKAMA"}, {"id": "stmt-517-2026-09-14", "date": "2026-09-14", "type": "expense", "category": "coffee", "amount": 12000, "note": "KOPI JAGO"}, {"id": "stmt-518-2026-09-14", "date": "2026-09-14", "type": "expense", "category": "food", "amount": 14000, "note": "BUBUR AYAM"}, {"id": "stmt-519-2026-09-14", "date": "2026-09-14", "type": "expense", "category": "food", "amount": 17000, "note": "MAKAN SIANG KANJAB"}, {"id": "stmt-520-2026-09-14", "date": "2026-09-14", "type": "expense", "category": "food", "amount": 5000, "note": "AICE JAGUNG"}, {"id": "stmt-521-2026-09-14", "date": "2026-09-14", "type": "expense", "category": "transport", "amount": 50000, "note": "Top Up E-Money"}, {"id": "stmt-522-2026-09-14", "date": "2026-09-14", "type": "expense", "category": "food", "amount": 22000, "note": "Tianlala"}, {"id": "stmt-523-2026-09-14", "date": "2026-09-14", "type": "expense", "category": "subscription", "amount": 31000, "note": "Shopee VIP"}, {"id": "stmt-524-2026-09-14", "date": "2026-09-14", "type": "expense", "category": "food", "amount": 22200, "note": "Floaty + Kopiko22"}, {"id": "stmt-525-2026-09-14", "date": "2026-09-14", "type": "expense", "category": "food", "amount": 44495, "note": "Secbowl"}, {"id": "stmt-526-2026-09-14", "date": "2026-09-14", "type": "expense", "category": "bills", "amount": 202000, "note": "Token Listrik"}, {"id": "stmt-527-2026-09-14", "date": "2026-09-14", "type": "expense", "category": "household", "amount": 59960, "note": "Sprei Kasur"}, {"id": "stmt-528-2026-09-14", "date": "2026-09-14", "type": "expense", "category": "shopping", "amount": 40732, "note": "Lem Sepatu"}];
+
+function seedTransactions(){
+  return REAL_TRANSACTIONS;
+}
+function seedBudgets(){
+  return {
+    food:1200000, coffee:400000, admin_fee:25000, fashion:400000, skincare:150000, household:350000,
+    transfer:200000, savings_out:1000000,
+    shopping:700000, transport:600000, home:1500000, bills:800000,
+    education:300000, entertainment:400000, health:300000, travel:300000,
+    gift:200000, subscription:150000, other:250000
+  };
+}
+function seedGoals(){
+  return [
+    {id:'g1', emoji:'🛟', name:'Dana Darurat', target:20000000, saved:5000000},
+    {id:'g2', emoji:'🏝️', name:'Liburan ke Bali', target:10000000, saved:2500000},
+    {id:'g3', emoji:'💻', name:'Laptop Baru', target:15000000, saved:1546330}
+  ];
+}
+function seedBankBalances(){
+  return { mandiri: 198034, bca: 9046330 };
+}
+
+/* ================= STATE ================= */
+var LS_SEED_VERSION = 'kelola_seed_version';
+var CURRENT_SEED_VERSION = 'v6-merge-2026-09-14';
+try{
+  var storedVersion = localStorage.getItem(LS_SEED_VERSION);
+  if(storedVersion !== CURRENT_SEED_VERSION){
+    // Sync fresh statement-derived seed data WITHOUT wiping the user's own data.
+    // Seed-origin transactions carry a recognizable id prefix ('stmt-' or 'savings-out-');
+    // anything else (manually added/edited by the user) is preserved as-is.
+    try{
+      var existingTxRaw = localStorage.getItem(LS_TX);
+      var existingTx = existingTxRaw ? JSON.parse(existingTxRaw) : [];
+      var userAdded = existingTx.filter(function(t){
+        return !(t.id && (t.id.indexOf('stmt-')===0 || t.id.indexOf('savings-out-')===0));
+      });
+      var merged = REAL_TRANSACTIONS.concat(userAdded);
+      localStorage.setItem(LS_TX, JSON.stringify(merged));
+    }catch(e){}
+    try{
+      var existingBudgetRaw = localStorage.getItem(LS_BUDGET);
+      var existingBudget = existingBudgetRaw ? JSON.parse(existingBudgetRaw) : {};
+      var freshBudget = seedBudgets();
+      Object.keys(freshBudget).forEach(function(k){
+        if(!(k in existingBudget)) existingBudget[k] = freshBudget[k];
+      });
+      localStorage.setItem(LS_BUDGET, JSON.stringify(existingBudget));
+    }catch(e){}
+    localStorage.setItem(LS_SEED_VERSION, CURRENT_SEED_VERSION);
+  }
+}catch(e){}
+
+var transactions, categoryBudgets, goals, bankBalances;
+try{ var r1 = localStorage.getItem(LS_TX); transactions = r1 ? JSON.parse(r1) : seedTransactions(); }catch(e){ transactions = seedTransactions(); }
+try{ var r2 = localStorage.getItem(LS_BUDGET); categoryBudgets = r2 ? JSON.parse(r2) : seedBudgets(); }catch(e){ categoryBudgets = seedBudgets(); }
+try{ var r3 = localStorage.getItem(LS_GOALS); goals = r3 ? JSON.parse(r3) : seedGoals(); }catch(e){ goals = seedGoals(); }
+try{ var r4 = localStorage.getItem(LS_BANKS); bankBalances = r4 ? JSON.parse(r4) : seedBankBalances(); }catch(e){ bankBalances = seedBankBalances(); }
+
+var txFilter = { type:'all', category:null, search:'' };
+var txCollapsedYear = {};
+var txCollapsedMonth = {};
+var txGroupInit = false;
+
+function persistTx(){ try{ localStorage.setItem(LS_TX, JSON.stringify(transactions)); }catch(e){} }
+function persistBudgets(){ try{ localStorage.setItem(LS_BUDGET, JSON.stringify(categoryBudgets)); }catch(e){} }
+function persistGoals(){ try{ localStorage.setItem(LS_GOALS, JSON.stringify(goals)); }catch(e){} }
+function persistBanks(){ try{ localStorage.setItem(LS_BANKS, JSON.stringify(bankBalances)); }catch(e){} }
+
+/* ================= COMPUTATION ================= */
+function txForMonthOffset(offset){
+  var mk = monthKeyOffset(offset);
+  return transactions.filter(function(t){ return monthKeyOf(t.date) === mk; });
+}
+function sumType(list, type){ return list.filter(function(t){return t.type===type;}).reduce(function(s,t){return s+t.amount;},0); }
+function categorySpend(list, catId){ return list.filter(function(t){return t.type==='expense' && t.category===catId;}).reduce(function(s,t){return s+t.amount;},0); }
+function totalBudget(){ return Object.values(categoryBudgets).reduce(function(a,b){return a+b;},0); }
+
+/* ================= RENDER: GREETING ================= */
+function renderGreeting(){
+  var h = new Date().getHours();
+  var greet = h<11 ? 'Selamat pagi' : h<15 ? 'Selamat siang' : h<19 ? 'Selamat sore' : 'Selamat malam';
+  document.getElementById('greetingText').textContent = greet+', Rahman 👋';
+  var now = new Date();
+  document.getElementById('greetingDate').textContent = DAY_ID[now.getDay()]+', '+now.getDate()+' '+MONTH_ID_LONG[now.getMonth()]+' '+now.getFullYear();
+}
+
+/* ================= RENDER: SUMMARY CARDS ================= */
+function changeBadge(pct, goodWhenUp){
+  if(Math.abs(pct) < 0.5){
+    return '<span class="stat-change flat">— stabil</span>';
+  }
+  var up = pct > 0;
+  var good = up === goodWhenUp;
+  var cls = (up?'up-':'down-') + (good?'good':'bad');
+  var arrow = up ? '↑' : '↓';
+  return '<span class="stat-change '+cls+'">'+arrow+' '+Math.abs(pct).toFixed(0)+'% vs bulan lalu</span>';
+}
+function renderSummary(){
+  var cur = txForMonthOffset(0), prev = txForMonthOffset(1);
+  var curInc = sumType(cur,'income'), prevInc = sumType(prev,'income');
+  var curExp = sumType(cur,'expense'), prevExp = sumType(prev,'expense');
+  var budget = totalBudget();
+  var remaining = budget - curExp;
+  var curSave = curInc - curExp, prevSave = prevInc - prevExp;
+
+  var cards = [
+    {icon:'💰', bg:'var(--teal-tint)', label:'Total Pemasukan', value:fmtIDR(curInc), change:changeBadge(pctChange(curInc,prevInc), true)},
+    {icon:'💸', bg:'var(--pink-tint)', label:'Total Pengeluaran', value:fmtIDR(curExp), change:changeBadge(pctChange(curExp,prevExp), false)},
+    {icon:'🎯', bg:'var(--amber-tint)', label:'Sisa Budget', value:fmtIDR(remaining), change:'<span class="stat-change flat">dari '+fmtIDR(budget)+'</span>'},
+    {icon:'🏦', bg:'var(--purple-tint)', label:'Tabungan Bulan Ini', value:fmtIDR(curSave), change:changeBadge(pctChange(curSave,prevSave), true)}
+  ];
+  document.getElementById('summaryGrid').innerHTML = cards.map(function(c){
+    return '<div class="card stat-card">'+
+      '<div class="stat-icon" style="background:'+c.bg+'">'+c.icon+'</div>'+
+      '<div class="stat-label">'+c.label+'</div>'+
+      '<div class="stat-value">'+c.value+'</div>'+
+      c.change+
+    '</div>';
+  }).join('');
+}
+
+/* ================= RENDER: BANK ACCOUNTS ================= */
+function renderBanks(){
+  var totalGoalsSaved = goals.reduce(function(s,g){ return s+g.saved; }, 0);
+  document.getElementById('accountsGrid').innerHTML = BANKS.map(function(b){
+    var extra = '';
+    if(b.id === 'bca'){
+      var balance = bankBalances[b.id]||0;
+      var unallocated = balance - totalGoalsSaved;
+      if(unallocated > 0){
+        extra = '<div class="bank-alloc-note">Total target tabungan: <b>'+fmtIDR(totalGoalsSaved)+'</b> &middot; belum dialokasikan: <b>'+fmtIDR(unallocated)+'</b></div>';
+      } else if(unallocated < 0){
+        extra = '<div class="bank-alloc-note">Total target tabungan <b>'+fmtIDR(totalGoalsSaved)+'</b> melebihi saldo BCA sebesar <b>'+fmtIDR(Math.abs(unallocated))+'</b>.</div>';
+      } else {
+        extra = '<div class="bank-alloc-note">Seluruh saldo sudah teralokasikan ke target tabungan. ✅</div>';
+      }
+    }
+    return '<div class="card bank-card">'+
+      '<div class="bank-card-top">'+
+        '<div class="bank-logo" style="background:'+b.color+'">'+b.emoji+'</div>'+
+        '<div><div class="bank-name">'+b.name+'</div><span class="bank-tag '+b.tagCls+'">'+b.tagText+'</span></div>'+
+      '</div>'+
+      '<div class="bank-balance-label">Saldo saat ini</div>'+
+      '<div class="bank-balance">'+fmtIDR(bankBalances[b.id]||0)+'</div>'+
+      '<div style="font-size:12.5px; color:var(--muted); margin-bottom:14px;">'+b.desc+'</div>'+
+      '<button class="bank-edit-btn" data-bank="'+b.id+'">✏️ Edit Saldo</button>'+
+      extra+
+    '</div>';
+  }).join('');
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-bank]'), function(btn){
+    btn.addEventListener('click', function(){
+      currentBankId = btn.getAttribute('data-bank');
+      var bank = BANKS.find(function(b){return b.id===currentBankId;});
+      document.getElementById('editBankTitle').textContent = 'Edit Saldo '+bank.name;
+      document.getElementById('editBankAmount').value = (bankBalances[currentBankId]||0).toLocaleString('id-ID');
+      openModal('editBankOverlay');
+    });
+  });
+}
+
+/* ================= RENDER: BUDGET OVERVIEW ================= */
+function renderBudget(){
+  var cur = txForMonthOffset(0);
+  var curExp = sumType(cur,'expense');
+  var budget = totalBudget();
+  var pct = budget>0 ? (curExp/budget*100) : 0;
+  var pctClamped = Math.min(pct,100);
+  var r = 70, circ = 2*Math.PI*r;
+  var offset = circ * (1 - pctClamped/100);
+  var ringColor = pct<70 ? 'var(--green)' : pct<90 ? 'var(--amber)' : 'var(--red)';
+  var remaining = budget - curExp;
+  var isOver = remaining < 0;
+
+  var status;
+  if(pct < 70){ status = {cls:'good', text:"Kamu masih on track bulan ini!"}; }
+  else if(pct < 90){ status = {cls:'warn', text:'Hati-hati dengan pengeluaranmu.'}; }
+  else{ status = {cls:'danger', text: pct>=100 ? 'Kamu sudah melebihi budget bulan ini!' : 'Kamu mendekati batas budget!'}; }
+
+  document.getElementById('budgetCard').innerHTML =
+    '<div class="ring-wrap">'+
+      '<svg viewBox="0 0 160 160" width="180" height="180">'+
+        '<circle cx="80" cy="80" r="'+r+'" stroke="#F0F0F0" stroke-width="14" fill="none"/>'+
+        '<circle cx="80" cy="80" r="'+r+'" stroke="'+ringColor+'" stroke-width="14" fill="none" stroke-linecap="round" '+
+          'stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'" style="transition:stroke-dashoffset .6s ease"/>'+
+      '</svg>'+
+      '<div class="ring-center"><div class="ring-pct">'+pct.toFixed(0)+'%</div><div class="ring-caption">terpakai</div></div>'+
+    '</div>'+
+    '<div>'+
+      '<div class="budget-stats">'+
+        '<div><div class="budget-stat-label">Total Budget</div><div class="budget-stat-value">'+fmtIDR(budget)+'</div></div>'+
+        '<div><div class="budget-stat-label">Terpakai</div><div class="budget-stat-value" style="color:var(--pink)">'+fmtIDR(curExp)+'</div></div>'+
+        '<div><div class="budget-stat-label">Sisa</div><div class="budget-stat-value" style="color:'+(isOver?'var(--red)':'var(--ink)')+'">'+fmtIDR(remaining)+'</div></div>'+
+      '</div>'+
+      '<div class="status-pill '+status.cls+'"><span class="status-dot"></span>'+status.text+'</div>'+
+    '</div>';
+}
+
+/* ================= RENDER: CATEGORIES ================= */
+function renderCategories(){
+  var cur = txForMonthOffset(0);
+  var items = EXPENSE_CATS.map(function(cat){
+    var spent = categorySpend(cur, cat.id);
+    var budget = categoryBudgets[cat.id] || 0;
+    var pct = budget>0 ? (spent/budget*100) : (spent>0?100:0);
+    return {cat:cat, spent:spent, budget:budget, pct:pct};
+  }).sort(function(a,b){ return b.spent - a.spent; });
+
+  document.getElementById('catGrid').innerHTML = items.map(function(it){
+    var over = it.pct > 100;
+    var pctShow = Math.min(it.pct,100);
+    var isActive = txFilter.category === it.cat.id;
+    return '<div class="card cat-card'+(isActive?' active-filter':'')+'" data-cat="'+it.cat.id+'">'+
+      '<div class="cat-top">'+
+        '<div class="cat-badge" style="background:'+hexAlpha(it.cat.color,0.14)+'">'+it.cat.emoji+'</div>'+
+        '<div><div class="cat-name">'+it.cat.name+'</div>'+
+        '<div class="cat-amounts">'+fmtIDR(it.spent)+' dari '+fmtIDR(it.budget)+'</div></div>'+
+      '</div>'+
+      '<div class="cat-bar-track"><div class="cat-bar-fill" style="width:'+pctShow+'%; background:'+(over?'var(--red)':it.cat.color)+'"></div></div>'+
+      '<div class="cat-pct"><span'+(over?' class="cat-over"':'')+'>'+it.pct.toFixed(0)+'% terpakai</span>'+(over?'<span class="cat-over">melebihi!</span>':'')+'</div>'+
+    '</div>';
+  }).join('');
+
+  Array.prototype.forEach.call(document.querySelectorAll('#catGrid .cat-card'), function(el){
+    el.addEventListener('click', function(){
+      var id = el.getAttribute('data-cat');
+      txFilter.category = (txFilter.category === id) ? null : id;
+      txFilter.type = 'all';
+      renderAll();
+      document.getElementById('transactions').scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  });
+}
+
+/* ================= RENDER: TRENDS CHART ================= */
+function renderTrends(){
+  var svg = document.getElementById('trendSvg');
+  var wrap = svg.parentElement;
+  var width = wrap.clientWidth || 600;
+  var height = 240;
+  svg.setAttribute('viewBox','0 0 '+width+' '+height);
+  svg.innerHTML = '';
+
+  var data = [];
+  for(var i=5;i>=0;i--){
+    var mk = monthKeyOffset(i);
+    var list = transactions.filter(function(t){return monthKeyOf(t.date)===mk;});
+    var m = parseInt(mk.slice(5,7),10)-1;
+    data.push({label:MONTH_ID_SHORT[m], income:sumType(list,'income'), expense:sumType(list,'expense')});
+  }
+
+  var padLeft=48, padBottom=26, padTop=10, padRight=8;
+  var innerW = width-padLeft-padRight, innerH = height-padTop-padBottom;
+  var maxVal = 1;
+  data.forEach(function(d){ maxVal = Math.max(maxVal, d.income, d.expense); });
+
+  var n = data.length, groupW = innerW/n, barW = Math.min(26, groupW*0.3);
+  var ticks=4;
+  for(var t=0;t<=ticks;t++){
+    var val = (maxVal/ticks)*t;
+    var y = padTop+innerH-(innerH*(val/maxVal));
+    var txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x', padLeft-8); txt.setAttribute('y', y+4); txt.setAttribute('text-anchor','end');
+    txt.setAttribute('font-size','11'); txt.setAttribute('fill','#9B9B9B');
+    txt.textContent = fmtCompact(val);
+    svg.appendChild(txt);
+    var grid = document.createElementNS('http://www.w3.org/2000/svg','line');
+    grid.setAttribute('x1',padLeft); grid.setAttribute('x2', width-padRight);
+    grid.setAttribute('y1', y); grid.setAttribute('y2', y);
+    grid.setAttribute('stroke', '#F2F2F2');
+    svg.appendChild(grid);
+  }
+
+  var tooltip = document.getElementById('trendTooltip');
+  data.forEach(function(d, idx){
+    var gx = padLeft+idx*groupW, cx = gx+groupW/2;
+    var incH = innerH*(d.income/maxVal), expH = innerH*(d.expense/maxVal);
+    function bar(x,h,color,label,value){
+      var rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x',x); rect.setAttribute('y', padTop+innerH-h);
+      rect.setAttribute('width', barW); rect.setAttribute('height', h);
+      rect.setAttribute('rx', 4);
+      rect.setAttribute('fill', color);
+      rect.style.cursor='pointer';
+      rect.addEventListener('mousemove', function(ev){
+        var b = wrap.getBoundingClientRect();
+        tooltip.style.display='block';
+        tooltip.style.left = (ev.clientX-b.left+10)+'px';
+        tooltip.style.top = (ev.clientY-b.top-30)+'px';
+        tooltip.innerHTML = d.label+' &middot; '+label+': '+fmtIDR(value);
+      });
+      rect.addEventListener('mouseleave', function(){ tooltip.style.display='none'; });
+      svg.appendChild(rect);
+    }
+    bar(cx-barW-2, incH, 'var(--teal)'.includes('var')?'#00A699':'', 'Pemasukan', d.income);
+    bar(cx+2, expH, '#FF385C', 'Pengeluaran', d.expense);
+    var xt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    xt.setAttribute('x',cx); xt.setAttribute('y', padTop+innerH+18); xt.setAttribute('text-anchor','middle');
+    xt.setAttribute('font-size','11.5'); xt.setAttribute('fill','#9B9B9B'); xt.setAttribute('font-weight','600');
+    xt.textContent = d.label;
+    svg.appendChild(xt);
+  });
+}
+
+function renderRankList(){
+  var cur = txForMonthOffset(0);
+  var items = EXPENSE_CATS.map(function(cat){
+    return {cat:cat, spent:categorySpend(cur,cat.id)};
+  }).filter(function(i){return i.spent>0;}).sort(function(a,b){return b.spent-a.spent;}).slice(0,6);
+  var maxSpent = items.length ? items[0].spent : 1;
+  document.getElementById('rankList').innerHTML = items.map(function(it,idx){
+    var pct = (it.spent/maxSpent*100);
+    return '<div class="rank-row">'+
+      '<div class="rank-num">'+(idx+1)+'</div>'+
+      '<div class="rank-info">'+
+        '<div class="rank-name">'+it.cat.emoji+' '+it.cat.name+'</div>'+
+        '<div class="rank-bar-track"><div class="rank-bar-fill" style="width:'+pct+'%; background:'+it.cat.color+'"></div></div>'+
+      '</div>'+
+      '<div class="rank-amount">'+fmtIDR(it.spent)+'</div>'+
+    '</div>';
+  }).join('') || '<div class="empty-state"><div class="emoji">🌱</div>Belum ada pengeluaran bulan ini.</div>';
+}
+
+/* ================= RENDER: DAILY & WEEKLY TRACKING ================= */
+function getDailyExpenseSeries(){
+  var now = new Date();
+  var nDays = daysInMonth(now);
+  var todayDate = now.getDate();
+  var cur = txForMonthOffset(0);
+  var perDay = [];
+  for(var d=1; d<=nDays; d++){
+    var iso = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(d);
+    var dayTx = cur.filter(function(t){ return t.date===iso; });
+    perDay.push({ day:d, iso:iso, amount: sumType(dayTx,'expense') });
+  }
+  return { perDay: perDay, todayDate: todayDate, nDays: nDays };
+}
+
+function renderDailyStats(){
+  var data = getDailyExpenseSeries();
+  var elapsedDays = data.todayDate; // days so far in current month, including today
+  var totalSoFar = data.perDay.slice(0, elapsedDays).reduce(function(s,d){return s+d.amount;},0);
+  var avgPerDay = elapsedDays>0 ? totalSoFar/elapsedDays : 0;
+  var todayAmt = data.perDay[data.todayDate-1] ? data.perDay[data.todayDate-1].amount : 0;
+
+  // this-week (last 7 days including today) vs previous 7 days
+  var last7 = data.perDay.slice(Math.max(0,elapsedDays-7), elapsedDays).reduce(function(s,d){return s+d.amount;},0);
+  var prev7start = Math.max(0, elapsedDays-14), prev7end = Math.max(0, elapsedDays-7);
+  var prev7 = data.perDay.slice(prev7start, prev7end).reduce(function(s,d){return s+d.amount;},0);
+
+  var cards = [
+    {icon:'📆', bg:'var(--pink-tint)', label:'Pengeluaran Hari Ini', value:fmtIDR(todayAmt), change:'<span class="stat-change flat">'+DAY_ID[new Date().getDay()]+'</span>'},
+    {icon:'📊', bg:'var(--amber-tint)', label:'Rata-rata / Hari (bulan ini)', value:fmtIDR(avgPerDay), change:'<span class="stat-change flat">dari '+elapsedDays+' hari berjalan</span>'},
+    {icon:'🗓️', bg:'var(--teal-tint)', label:'7 Hari Terakhir', value:fmtIDR(last7), change: changeBadge(pctChange(last7, prev7), false)},
+    {icon:'💤', bg:'var(--purple-tint)', label:'Hari Tanpa Pengeluaran', value: data.perDay.slice(0,elapsedDays).filter(function(d){return d.amount===0;}).length+' hari', change:'<span class="stat-change flat">dari '+elapsedDays+' hari</span>'}
+  ];
+  document.getElementById('dailyStatsGrid').innerHTML = cards.map(function(c){
+    return '<div class="card stat-card">'+
+      '<div class="stat-icon" style="background:'+c.bg+'">'+c.icon+'</div>'+
+      '<div class="stat-label">'+c.label+'</div>'+
+      '<div class="stat-value">'+c.value+'</div>'+
+      c.change+
+    '</div>';
+  }).join('');
+}
+
+function renderDailyChart(){
+  var svg = document.getElementById('dailySvg');
+  var wrap = svg.parentElement;
+  var width = wrap.clientWidth || 600;
+  var height = 220;
+  svg.setAttribute('viewBox','0 0 '+width+' '+height);
+  svg.innerHTML = '';
+
+  var data = getDailyExpenseSeries();
+  var perDay = data.perDay;
+  var maxVal = 1;
+  perDay.forEach(function(d){ maxVal = Math.max(maxVal, d.amount); });
+
+  var padLeft=48, padBottom=24, padTop=10, padRight=8;
+  var innerW = width-padLeft-padRight, innerH = height-padTop-padBottom;
+  var n = perDay.length, groupW = innerW/n, barW = Math.max(3, Math.min(14, groupW*0.55));
+
+  var ticks=4;
+  for(var t=0;t<=ticks;t++){
+    var val = (maxVal/ticks)*t;
+    var y = padTop+innerH-(innerH*(val/maxVal));
+    var txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x', padLeft-8); txt.setAttribute('y', y+4); txt.setAttribute('text-anchor','end');
+    txt.setAttribute('font-size','10.5'); txt.setAttribute('fill','#9B9B9B');
+    txt.textContent = fmtCompact(val);
+    svg.appendChild(txt);
+    var grid = document.createElementNS('http://www.w3.org/2000/svg','line');
+    grid.setAttribute('x1',padLeft); grid.setAttribute('x2', width-padRight);
+    grid.setAttribute('y1', y); grid.setAttribute('y2', y);
+    grid.setAttribute('stroke', '#F2F2F2');
+    svg.appendChild(grid);
+  }
+
+  var axisLine = document.createElementNS('http://www.w3.org/2000/svg','line');
+  axisLine.setAttribute('x1', padLeft); axisLine.setAttribute('y1', padTop+innerH);
+  axisLine.setAttribute('x2', width-padRight); axisLine.setAttribute('y2', padTop+innerH);
+  axisLine.setAttribute('stroke', '#E5E5E5');
+  svg.appendChild(axisLine);
+
+  var tooltip = document.getElementById('dailyTooltip');
+  var labelStep = Math.max(1, Math.ceil(n/10));
+
+  perDay.forEach(function(d, idx){
+    var gx = padLeft+idx*groupW, cx = gx+groupW/2;
+    var h = innerH*(d.amount/maxVal);
+    var isFuture = d.day > data.todayDate;
+    var rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x', cx-barW/2); rect.setAttribute('y', padTop+innerH-h);
+    rect.setAttribute('width', barW); rect.setAttribute('height', h);
+    rect.setAttribute('rx', 2);
+    rect.setAttribute('fill', isFuture ? '#EAEAEA' : (d.day===data.todayDate ? '#FF385C' : 'rgba(255,56,92,0.55)'));
+    rect.style.cursor = 'pointer';
+    rect.addEventListener('mousemove', function(ev){
+      var b = wrap.getBoundingClientRect();
+      tooltip.style.display='block';
+      tooltip.style.left = (ev.clientX-b.left+10)+'px';
+      tooltip.style.top = (ev.clientY-b.top-30)+'px';
+      tooltip.innerHTML = 'Tgl '+d.day+' &middot; '+fmtIDR(d.amount);
+    });
+    rect.addEventListener('mouseleave', function(){ tooltip.style.display='none'; });
+    svg.appendChild(rect);
+
+    if(d.day % labelStep === 0 || d.day===1){
+      var xt = document.createElementNS('http://www.w3.org/2000/svg','text');
+      xt.setAttribute('x',cx); xt.setAttribute('y', padTop+innerH+16); xt.setAttribute('text-anchor','middle');
+      xt.setAttribute('font-size','10'); xt.setAttribute('fill','#9B9B9B');
+      xt.textContent = d.day;
+      svg.appendChild(xt);
+    }
+  });
+}
+
+function renderWeeklyList(){
+  var data = getDailyExpenseSeries();
+  var perDay = data.perDay;
+  var weeks = [];
+  for(var i=0; i<perDay.length; i+=7){
+    var chunk = perDay.slice(i, i+7);
+    var total = chunk.reduce(function(s,d){return s+d.amount;},0);
+    var startDay = chunk[0].day, endDay = chunk[chunk.length-1].day;
+    var isCurrent = data.todayDate >= startDay && data.todayDate <= endDay;
+    weeks.push({ label:'Minggu '+(weeks.length+1)+' (Tgl '+startDay+'-'+endDay+')', total:total, isCurrent:isCurrent });
+  }
+  var maxTotal = Math.max.apply(null, weeks.map(function(w){return w.total;}).concat([1]));
+  document.getElementById('weeklyList').innerHTML = weeks.map(function(w, idx){
+    var pct = (w.total/maxTotal*100);
+    return '<div class="rank-row">'+
+      '<div class="rank-num" style="'+(w.isCurrent?'background:var(--pink); color:#fff;':'')+'">'+(idx+1)+'</div>'+
+      '<div class="rank-info">'+
+        '<div class="rank-name">'+w.label+(w.isCurrent?' <span style="color:var(--pink); font-weight:800;">&middot; berjalan</span>':'')+'</div>'+
+        '<div class="rank-bar-track"><div class="rank-bar-fill" style="width:'+pct+'%; background:'+(w.isCurrent?'var(--pink)':'var(--purple)')+'"></div></div>'+
+      '</div>'+
+      '<div class="rank-amount">'+fmtIDR(w.total)+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+/* ================= RENDER: GOALS ================= */
+function renderGoals(){
+  var html = goals.map(function(g){
+    var pct = g.target>0 ? Math.min(g.saved/g.target*100,100) : 0;
+    var r=36, circ=2*Math.PI*r, offset = circ*(1-pct/100);
+    return '<div class="card goal-card">'+
+      '<div class="goal-ring">'+
+        '<svg viewBox="0 0 80 80" width="80" height="80">'+
+          '<circle cx="40" cy="40" r="'+r+'" stroke="#F0F0F0" stroke-width="8" fill="none"/>'+
+          '<circle cx="40" cy="40" r="'+r+'" stroke="var(--purple)" stroke-width="8" fill="none" stroke-linecap="round" '+
+            'stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'"/>'+
+        '</svg>'+
+        '<div class="goal-ring-center">'+g.emoji+'</div>'+
+      '</div>'+
+      '<div class="goal-body">'+
+        '<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:6px;">'+
+          '<div class="goal-name">'+escapeHtml(g.name)+'</div>'+
+          '<button class="goal-edit-btn" data-editgoal="'+g.id+'" title="Edit target">✏️</button>'+
+        '</div>'+
+        '<div class="goal-amounts">'+fmtIDR(g.saved)+' / '+fmtIDR(g.target)+' ('+pct.toFixed(0)+'%)</div>'+
+        '<button class="goal-add-btn" data-goal="'+g.id+'">+ Tambah Tabungan</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  html += '<button class="card add-goal-card" id="addGoalCard"><span style="font-size:26px;">＋</span>Tambah Target Baru</button>';
+  document.getElementById('goalsGrid').innerHTML = html;
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-goal]'), function(btn){
+    btn.addEventListener('click', function(){
+      currentGoalId = btn.getAttribute('data-goal');
+      document.getElementById('addSavingAmount').value = '';
+      openModal('addSavingOverlay');
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-editgoal]'), function(btn){
+    btn.addEventListener('click', function(){
+      openGoalModal(btn.getAttribute('data-editgoal'));
+    });
+  });
+  document.getElementById('addGoalCard').addEventListener('click', function(){ openGoalModal(); });
+}
+
+/* ================= RENDER: INSIGHTS ================= */
+function renderInsights(){
+  var cur = txForMonthOffset(0), prev = txForMonthOffset(1);
+  var curExp = sumType(cur,'expense'), prevExp = sumType(prev,'expense');
+  var curInc = sumType(cur,'income'), prevInc = sumType(prev,'income');
+  var curSave = curInc-curExp, prevSave = prevInc-prevExp;
+  var insights = [];
+
+  // Biggest category this month
+  var catSpends = EXPENSE_CATS.map(function(cat){ return {cat:cat, spent:categorySpend(cur,cat.id)}; })
+    .filter(function(i){return i.spent>0;}).sort(function(a,b){return b.spent-a.spent;});
+  if(catSpends.length){
+    var top = catSpends[0];
+    var pctOfTotal = curExp>0 ? (top.spent/curExp*100) : 0;
+    insights.push({emoji: top.cat.emoji, bg: hexAlpha(top.cat.color,0.14),
+      text:'Kategori pengeluaran terbesar bulan ini adalah <b>'+top.cat.name+'</b> sebesar <b>'+fmtIDR(top.spent)+'</b> ('+pctOfTotal.toFixed(0)+'% dari total pengeluaran).'});
+  }
+
+  // Category with biggest % increase
+  var increases = EXPENSE_CATS.map(function(cat){
+    var c = categorySpend(cur,cat.id), p = categorySpend(prev,cat.id);
+    return {cat:cat, pct: pctChange(c,p), curAmt:c};
+  }).filter(function(i){ return i.curAmt>0 && i.pct>15; }).sort(function(a,b){return b.pct-a.pct;});
+  if(increases.length){
+    var inc = increases[0];
+    insights.push({emoji:'📈', bg:'var(--red-tint)',
+      text:'Pengeluaran untuk <b>'+inc.cat.name+'</b> naik <b>'+inc.pct.toFixed(0)+'%</b> dibanding bulan lalu. Coba dipantau lagi ya.'});
+  }
+
+  // Over-budget category
+  var overBudget = EXPENSE_CATS.map(function(cat){
+    var spent = categorySpend(cur,cat.id), budget = categoryBudgets[cat.id]||0;
+    return {cat:cat, spent:spent, budget:budget, ratio: budget>0?spent/budget:0};
+  }).filter(function(i){return i.ratio>=1;}).sort(function(a,b){return b.ratio-a.ratio;});
+  if(overBudget.length){
+    var ob = overBudget[0];
+    insights.push({emoji:'⚠️', bg:'var(--amber-tint)',
+      text:'Kamu sudah melebihi budget <b>'+ob.cat.name+'</b> sebesar <b>'+fmtIDR(ob.spent-ob.budget)+'</b> bulan ini.'});
+  } else {
+    insights.push({emoji:'✅', bg:'var(--green-tint)',
+      text:'Semua kategori pengeluaranmu masih berada di dalam budget bulan ini. Pertahankan!'});
+  }
+
+  // Savings trend
+  if(curSave > prevSave && prevInc>0){
+    insights.push({emoji:'🎉', bg:'var(--teal-tint)',
+      text:'Kerja bagus! Tabunganmu bulan ini <b>'+fmtIDR(curSave)+'</b>, lebih baik dibanding bulan lalu.'});
+  } else if(curSave < 0){
+    insights.push({emoji:'🚨', bg:'var(--red-tint)',
+      text:'Pengeluaranmu bulan ini melebihi pemasukan sebesar <b>'+fmtIDR(Math.abs(curSave))+'</b>. Yuk, mulai kurangi pengeluaran non-esensial.'});
+  } else {
+    insights.push({emoji:'💡', bg:'var(--purple-tint)',
+      text:'Rata-rata pengeluaran harianmu bulan ini sekitar <b>'+fmtIDR(curExp/new Date().getDate())+'</b> per hari.'});
+  }
+
+  document.getElementById('insightsGrid').innerHTML = insights.slice(0,4).map(function(ins){
+    return '<div class="card insight-card">'+
+      '<div class="insight-icon" style="background:'+ins.bg+'">'+ins.emoji+'</div>'+
+      '<div class="insight-text">'+ins.text+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+/* ================= RENDER: TRANSACTIONS ================= */
+function renderTransactions(){
+  var list = transactions.slice().sort(function(a,b){ return a.date<b.date?1:a.date>b.date?-1:0; });
+  if(txFilter.type !== 'all'){ list = list.filter(function(t){return t.type===txFilter.type;}); }
+  if(txFilter.category){ list = list.filter(function(t){return t.category===txFilter.category;}); }
+  if(txFilter.search){
+    var q = txFilter.search.toLowerCase();
+    list = list.filter(function(t){
+      var cat = ALL_CATS_MAP[t.category];
+      return (t.note||'').toLowerCase().indexOf(q)>=0 || (cat && cat.name.toLowerCase().indexOf(q)>=0);
+    });
+  }
+
+  var clearBtn = document.getElementById('clearCatFilter');
+  if(txFilter.category){
+    clearBtn.style.display = 'inline-flex';
+    document.getElementById('clearCatFilterLabel').textContent = ALL_CATS_MAP[txFilter.category].name;
+  } else {
+    clearBtn.style.display = 'none';
+  }
+
+  if(list.length === 0){
+    document.getElementById('txList').innerHTML = '<div class="empty-state"><div class="emoji">🧾</div>Tidak ada transaksi yang cocok.</div>';
+    return;
+  }
+
+  // group by year, then by month (YYYY-MM), preserving descending order already in list
+  var yearOrder = [];
+  var yearGroups = {};
+  list.forEach(function(t){
+    var yk = t.date.slice(0,4);
+    var mk = t.date.slice(0,7);
+    if(!yearGroups[yk]){ yearGroups[yk] = { order:[], months:{} }; yearOrder.push(yk); }
+    var yg = yearGroups[yk];
+    if(!yg.months[mk]){ yg.months[mk] = []; yg.order.push(mk); }
+    yg.months[mk].push(t);
+  });
+
+  // default: expand only the most recent year, and within it only the most recent month
+  if(!txGroupInit){
+    txGroupInit = true;
+    yearOrder.forEach(function(yk, yidx){
+      txCollapsedYear[yk] = (yidx !== 0);
+      yearGroups[yk].order.forEach(function(mk, midx){ txCollapsedMonth[mk] = (midx !== 0); });
+    });
+  } else {
+    yearOrder.forEach(function(yk, yidx){
+      if(!(yk in txCollapsedYear)) txCollapsedYear[yk] = (yidx !== 0);
+      yearGroups[yk].order.forEach(function(mk, midx){
+        if(!(mk in txCollapsedMonth)) txCollapsedMonth[mk] = (midx !== 0);
+      });
+    });
+  }
+
+  function renderTxRow(t){
+    var cat = ALL_CATS_MAP[t.category] || {emoji:'📦', color:'#717171', name:t.category};
+    var d = new Date(t.date+'T00:00:00');
+    var dateStr = d.getDate()+' '+MONTH_ID_SHORT[d.getMonth()]+' '+d.getFullYear();
+    return '<div class="tx-row" data-id="'+t.id+'">'+
+      '<div class="tx-badge" style="background:'+hexAlpha(cat.color,0.14)+'">'+cat.emoji+'</div>'+
+      '<div class="tx-info">'+
+        '<div class="tx-cat">'+cat.name+'</div>'+
+        (t.note?'<div class="tx-note">'+escapeHtml(t.note)+'</div>':'')+
+        '<div class="tx-date">'+dateStr+'</div>'+
+      '</div>'+
+      '<div class="tx-amount" style="color:'+(t.type==='expense'?'var(--pink)':'var(--teal)')+'">'+(t.type==='expense'?'-':'+')+fmtIDR(t.amount)+'</div>'+
+      '<button class="tx-edit" data-edit="'+t.id+'" title="Edit transaksi">✏️</button>'+
+      '<button class="tx-del" data-del="'+t.id+'">✕</button>'+
+    '</div>';
+  }
+
+  document.getElementById('txList').innerHTML = yearOrder.map(function(yk){
+    var yg = yearGroups[yk];
+    var yearItems = [];
+    yg.order.forEach(function(mk){ yearItems = yearItems.concat(yg.months[mk]); });
+    var yInc = yearItems.filter(function(t){return t.type==='income';}).reduce(function(s,t){return s+t.amount;},0);
+    var yExp = yearItems.filter(function(t){return t.type==='expense';}).reduce(function(s,t){return s+t.amount;},0);
+    var yCollapsed = !!txCollapsedYear[yk];
+
+    var monthsHtml = yg.order.map(function(mk){
+      var items = yg.months[mk];
+      var m = parseInt(mk.slice(5,7),10)-1;
+      var label = MONTH_ID_LONG[m];
+      var inc = items.filter(function(t){return t.type==='income';}).reduce(function(s,t){return s+t.amount;},0);
+      var exp = items.filter(function(t){return t.type==='expense';}).reduce(function(s,t){return s+t.amount;},0);
+      var mCollapsed = !!txCollapsedMonth[mk];
+      var rowsHtml = items.map(renderTxRow).join('');
+      return '<div class="tx-month-group">'+
+        '<button class="tx-month-header" data-monthtoggle="'+mk+'">'+
+          '<span class="tx-month-chevron'+(mCollapsed?'':' open')+'">▸</span>'+
+          '<span class="tx-month-label">'+label+'</span>'+
+          '<span class="tx-month-count">'+items.length+' transaksi</span>'+
+          '<span class="tx-month-summary">'+
+            (inc>0?'<span class="tx-month-inc">+'+fmtIDR(inc)+'</span>':'')+
+            (exp>0?'<span class="tx-month-exp">-'+fmtIDR(exp)+'</span>':'')+
+          '</span>'+
+        '</button>'+
+        '<div class="tx-month-body'+(mCollapsed?' collapsed':'')+'">'+rowsHtml+'</div>'+
+      '</div>';
+    }).join('');
+
+    return '<div class="tx-year-group">'+
+      '<button class="tx-year-header" data-yeartoggle="'+yk+'">'+
+        '<span class="tx-year-chevron'+(yCollapsed?'':' open')+'">▸</span>'+
+        '<span class="tx-year-label">'+yk+'</span>'+
+        '<span class="tx-year-count">'+yearItems.length+' transaksi</span>'+
+        '<span class="tx-month-summary">'+
+          (yInc>0?'<span class="tx-month-inc">+'+fmtIDR(yInc)+'</span>':'')+
+          (yExp>0?'<span class="tx-month-exp">-'+fmtIDR(yExp)+'</span>':'')+
+        '</span>'+
+      '</button>'+
+      '<div class="tx-year-body'+(yCollapsed?' collapsed':'')+'">'+monthsHtml+'</div>'+
+    '</div>';
+  }).join('');
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-yeartoggle]'), function(btn){
+    btn.addEventListener('click', function(){
+      var yk = btn.getAttribute('data-yeartoggle');
+      txCollapsedYear[yk] = !txCollapsedYear[yk];
+      renderTransactions();
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-monthtoggle]'), function(btn){
+    btn.addEventListener('click', function(){
+      var mk = btn.getAttribute('data-monthtoggle');
+      txCollapsedMonth[mk] = !txCollapsedMonth[mk];
+      renderTransactions();
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-edit]'), function(btn){
+    btn.addEventListener('click', function(){
+      openEditTx(btn.getAttribute('data-edit'));
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-del]'), function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.getAttribute('data-del');
+      var removed = transactions.find(function(t){return t.id===id;});
+      transactions = transactions.filter(function(t){return t.id!==id;});
+      persistTx();
+      if(removed){
+        bankBalances.mandiri = (bankBalances.mandiri||0) - (removed.type==='income' ? removed.amount : -removed.amount);
+        persistBanks();
+      }
+      renderAll();
+      showToast('Transaksi dihapus, saldo Mandiri diperbarui');
+    });
+  });
+}
+
+/* ================= MODALS ================= */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+Array.prototype.forEach.call(document.querySelectorAll('[data-close]'), function(btn){
+  btn.addEventListener('click', function(){ closeModal(btn.getAttribute('data-close')); });
+});
+Array.prototype.forEach.call(document.querySelectorAll('.overlay'), function(ov){
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('open'); });
+});
+
+/* ---- Add Transaction modal ---- */
+var txType = 'expense', txCategory = EXPENSE_CATS[0].id;
+var editingTxId = null;
+function renderTxCatPicker(){
+  var cats = txType==='expense' ? EXPENSE_CATS : INCOME_CATS;
+  if(!cats.find(function(c){return c.id===txCategory;})) txCategory = cats[0].id;
+  document.getElementById('txCatPicker').innerHTML = cats.map(function(c){
+    return '<button type="button" class="cat-pick-btn'+(c.id===txCategory?' active':'')+'" data-cat="'+c.id+'">'+
+      '<span class="em">'+c.emoji+'</span>'+c.name+'</button>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('#txCatPicker .cat-pick-btn'), function(btn){
+    btn.addEventListener('click', function(){ txCategory = btn.getAttribute('data-cat'); renderTxCatPicker(); });
+  });
+}
+Array.prototype.forEach.call(document.querySelectorAll('#txForm .type-toggle button'), function(btn){
+  btn.addEventListener('click', function(){
+    txType = btn.getAttribute('data-type');
+    Array.prototype.forEach.call(document.querySelectorAll('#txForm .type-toggle button'), function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    renderTxCatPicker();
+  });
+});
+document.getElementById('txAmount').addEventListener('input', function(){
+  var digits = this.value.replace(/\D/g,'');
+  this.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+});
+document.getElementById('openAddTx').addEventListener('click', function(){
+  editingTxId = null;
+  txType='expense'; txCategory = EXPENSE_CATS[0].id;
+  document.getElementById('txAmount').value='';
+  document.getElementById('txNote').value='';
+  document.getElementById('txDate').value = toISO(new Date());
+  document.getElementById('txModalTitle').textContent = 'Tambah Transaksi';
+  document.getElementById('txSubmitBtn').textContent = 'Simpan Transaksi';
+  Array.prototype.forEach.call(document.querySelectorAll('#txForm .type-toggle button'), function(b){ b.classList.toggle('active', b.getAttribute('data-type')==='expense'); });
+  renderTxCatPicker();
+  openModal('txOverlay');
+});
+function openEditTx(id){
+  var t = transactions.find(function(x){return x.id===id;});
+  if(!t) return;
+  editingTxId = id;
+  txType = t.type;
+  txCategory = t.category;
+  document.getElementById('txAmount').value = t.amount.toLocaleString('id-ID');
+  document.getElementById('txNote').value = t.note || '';
+  document.getElementById('txDate').value = t.date;
+  document.getElementById('txModalTitle').textContent = 'Edit Transaksi';
+  document.getElementById('txSubmitBtn').textContent = 'Simpan Perubahan';
+  Array.prototype.forEach.call(document.querySelectorAll('#txForm .type-toggle button'), function(b){ b.classList.toggle('active', b.getAttribute('data-type')===t.type); });
+  renderTxCatPicker();
+  openModal('txOverlay');
+}
+document.getElementById('txForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var amount = Number(document.getElementById('txAmount').value.replace(/\D/g,''))||0;
+  if(amount<=0) return;
+  var date = document.getElementById('txDate').value;
+  var note = document.getElementById('txNote').value.trim();
+
+  if(editingTxId){
+    var t = transactions.find(function(x){return x.id===editingTxId;});
+    if(t){
+      // reverse old effect on Mandiri balance, then apply new effect
+      bankBalances.mandiri = (bankBalances.mandiri||0) - (t.type==='income' ? t.amount : -t.amount);
+      t.type = txType; t.category = txCategory; t.amount = amount; t.date = date; t.note = note;
+      bankBalances.mandiri = (bankBalances.mandiri||0) + (t.type==='income' ? amount : -amount);
+      persistBanks();
+    }
+    persistTx();
+    closeModal('txOverlay');
+    renderAll();
+    showToast('Transaksi berhasil diperbarui, saldo Mandiri disesuaikan');
+  } else {
+    var tx = {
+      id: Date.now()+'-'+Math.random().toString(36).slice(2,7),
+      type: txType, category: txCategory, amount: amount,
+      date: date, note: note
+    };
+    transactions.unshift(tx);
+    persistTx();
+    bankBalances.mandiri = (bankBalances.mandiri||0) + (tx.type==='income' ? amount : -amount);
+    persistBanks();
+    closeModal('txOverlay');
+    renderAll();
+    showToast('Transaksi berhasil ditambahkan, saldo Mandiri diperbarui');
+  }
+});
+
+/* ---- Budget modal ---- */
+document.getElementById('openBudgetModal').addEventListener('click', function(){
+  document.getElementById('budgetEditList').innerHTML = EXPENSE_CATS.map(function(c){
+    return '<div class="budget-edit-row">'+
+      '<div class="cat-badge" style="background:'+hexAlpha(c.color,0.14)+'">'+c.emoji+'</div>'+
+      '<label>'+c.name+'</label>'+
+      '<input type="text" inputmode="numeric" class="budget-input" data-cat="'+c.id+'" value="'+(categoryBudgets[c.id]||0).toLocaleString('id-ID')+'">'+
+    '</div>';
+  }).join('');
+  updateBudgetTotal();
+  Array.prototype.forEach.call(document.querySelectorAll('.budget-input'), function(inp){
+    inp.addEventListener('input', function(){
+      var digits = this.value.replace(/\D/g,'');
+      this.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+      updateBudgetTotal();
+    });
+  });
+  openModal('budgetOverlay');
+});
+function updateBudgetTotal(){
+  var total = 0;
+  Array.prototype.forEach.call(document.querySelectorAll('.budget-input'), function(inp){
+    total += Number(inp.value.replace(/\D/g,''))||0;
+  });
+  document.getElementById('budgetEditTotal').textContent = fmtIDR(total);
+}
+document.getElementById('saveBudgetBtn').addEventListener('click', function(){
+  Array.prototype.forEach.call(document.querySelectorAll('.budget-input'), function(inp){
+    categoryBudgets[inp.getAttribute('data-cat')] = Number(inp.value.replace(/\D/g,''))||0;
+  });
+  persistBudgets();
+  closeModal('budgetOverlay');
+  renderAll();
+  showToast('Budget berhasil diperbarui');
+});
+
+/* ---- Goal modal ---- */
+var goalEmoji = GOAL_EMOJIS[0];
+var editingGoalId = null;
+function renderGoalEmojiPicker(){
+  document.getElementById('goalEmojiPicker').innerHTML = GOAL_EMOJIS.map(function(e){
+    return '<button type="button" class="cat-pick-btn'+(e===goalEmoji?' active':'')+'" data-emoji="'+e+'" style="font-size:19px;">'+e+'</button>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('#goalEmojiPicker .cat-pick-btn'), function(btn){
+    btn.addEventListener('click', function(){ goalEmoji = btn.getAttribute('data-emoji'); renderGoalEmojiPicker(); });
+  });
+}
+function openGoalModal(goalId){
+  editingGoalId = goalId || null;
+  var g = editingGoalId ? goals.find(function(x){return x.id===editingGoalId;}) : null;
+  goalEmoji = g ? g.emoji : GOAL_EMOJIS[0];
+  document.getElementById('goalName').value = g ? g.name : '';
+  document.getElementById('goalTarget').value = g ? g.target.toLocaleString('id-ID') : '';
+  document.getElementById('goalSaved').value = g ? g.saved.toLocaleString('id-ID') : '';
+  document.getElementById('goalModalTitle').textContent = g ? 'Edit Target' : 'Tambah Target Baru';
+  document.getElementById('goalSubmitBtn').textContent = g ? 'Simpan Perubahan' : 'Simpan Target';
+  document.getElementById('goalDeleteBtn').style.display = g ? 'block' : 'none';
+  renderGoalEmojiPicker();
+  openModal('goalOverlay');
+}
+['goalTarget','goalSaved'].forEach(function(id){
+  document.getElementById(id).addEventListener('input', function(){
+    var digits = this.value.replace(/\D/g,'');
+    this.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+  });
+});
+document.getElementById('goalForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var target = Number(document.getElementById('goalTarget').value.replace(/\D/g,''))||0;
+  var saved = Number(document.getElementById('goalSaved').value.replace(/\D/g,''))||0;
+  var name = document.getElementById('goalName').value.trim();
+  if(!name || target<=0) return;
+  if(editingGoalId){
+    var g = goals.find(function(x){return x.id===editingGoalId;});
+    if(g){ g.name=name; g.target=target; g.saved=saved; g.emoji=goalEmoji; }
+    showToast('Target berhasil diperbarui');
+  } else {
+    goals.push({id:'g'+Date.now(), emoji:goalEmoji, name:name, target:target, saved:saved});
+    showToast('Target baru ditambahkan');
+  }
+  persistGoals();
+  closeModal('goalOverlay');
+  renderAll();
+});
+document.getElementById('goalDeleteBtn').addEventListener('click', function(){
+  if(!editingGoalId) return;
+  if(window.confirm('Hapus target ini?')){
+    goals = goals.filter(function(x){return x.id!==editingGoalId;});
+    persistGoals();
+    closeModal('goalOverlay');
+    renderAll();
+    showToast('Target dihapus');
+  }
+});
+
+/* ---- Add saving modal ---- */
+var currentGoalId = null;
+document.getElementById('addSavingAmount').addEventListener('input', function(){
+  var digits = this.value.replace(/\D/g,'');
+  this.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+});
+document.getElementById('addSavingForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var amount = Number(document.getElementById('addSavingAmount').value.replace(/\D/g,''))||0;
+  if(amount<=0 || !currentGoalId) return;
+  var g = goals.find(function(g){return g.id===currentGoalId;});
+  if(g){ g.saved += amount; persistGoals(); }
+  closeModal('addSavingOverlay');
+  renderAll();
+  showToast('Tabungan berhasil ditambahkan 🎉');
+});
+
+/* ---- Edit bank balance modal ---- */
+var currentBankId = null;
+document.getElementById('editBankAmount').addEventListener('input', function(){
+  var digits = this.value.replace(/\D/g,'');
+  this.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+});
+document.getElementById('editBankForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var amount = Number(document.getElementById('editBankAmount').value.replace(/\D/g,''))||0;
+  if(!currentBankId) return;
+  bankBalances[currentBankId] = amount;
+  persistBanks();
+  closeModal('editBankOverlay');
+  renderAll();
+  showToast('Saldo berhasil diperbarui');
+});
+
+/* ================= TRANSACTION FILTER CONTROLS ================= */
+Array.prototype.forEach.call(document.querySelectorAll('.filter-chip[data-type]'), function(btn){
+  btn.addEventListener('click', function(){
+    Array.prototype.forEach.call(document.querySelectorAll('.filter-chip[data-type]'), function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    txFilter.type = btn.getAttribute('data-type');
+    renderTransactions();
+  });
+});
+document.getElementById('clearCatFilter').addEventListener('click', function(){
+  txFilter.category = null;
+  renderCategories();
+  renderTransactions();
+});
+document.getElementById('txSearch').addEventListener('input', function(){
+  txFilter.search = this.value;
+  renderTransactions();
+});
+
+/* ================= NAV ACTIVE STATE ================= */
+var navLinks = Array.prototype.slice.call(document.querySelectorAll('#navlinks a'));
+var sections = navLinks.map(function(a){ return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+window.addEventListener('scroll', function(){
+  var pos = window.scrollY + 120;
+  var activeIdx = 0;
+  sections.forEach(function(sec, idx){ if(sec.offsetTop <= pos) activeIdx = idx; });
+  navLinks.forEach(function(a,idx){ a.classList.toggle('active', idx===activeIdx); });
+});
+
+/* ================= TOAST ================= */
+function showToast(msg){
+  var el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.getElementById('toastWrap').appendChild(el);
+  setTimeout(function(){ el.remove(); }, 2600);
+}
+
+/* ================= RENDER ALL ================= */
+function renderAll(){
+  renderGreeting();
+  renderSummary();
+  renderBanks();
+  renderBudget();
+  renderCategories();
+  renderTrends();
+  renderRankList();
+  renderDailyStats();
+  renderDailyChart();
+  renderWeeklyList();
+  renderGoals();
+  renderInsights();
+  renderTransactions();
+}
+window.addEventListener('resize', function(){ renderTrends(); renderDailyChart(); });
+renderAll();
+
+})();
+</script>
+</body>
+</html>
